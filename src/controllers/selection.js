@@ -1,6 +1,7 @@
 import { selectHightlightShow, selectionCopyShow } from './select';
 import menuButton from './menuButton';
 import conditionformat from './conditionformat';
+import {checkProtectionLockedRangeList} from './protection';
 import editor from '../global/editor';
 import tooltip from '../global/tooltip';
 import formula from '../global/formula';
@@ -13,6 +14,7 @@ import { genarate, update } from '../global/format';
 import { getSheetIndex } from '../methods/get';
 import { replaceHtml, getObjType, luckysheetfontformat } from '../utils/util';
 import Store from '../store';
+import locale from '../locale/locale';
 
 const selection = {
     clearcopy: function (e) {
@@ -26,7 +28,7 @@ const selection = {
 
         Store.luckysheet_selection_range = [];
         selectionCopyShow();
-        Store.luckysheet_copy_save = {};
+        // Store.luckysheet_copy_save = {};
         
         if (!clipboardData) {
             let textarea = $("#luckysheet-copy-content").css("visibility", "hidden");
@@ -100,41 +102,39 @@ const selection = {
 
         Store.luckysheet_selection_range = [];
         //copy范围
-        let minR = Store.luckysheet_select_save[0].row[0], 
-            maxR = Store.luckysheet_select_save[0].row[1];
-        let minC = Store.luckysheet_select_save[0].column[0], 
-            maxC = Store.luckysheet_select_save[0].column[1];
-
+        let rowIndexArr = [], colIndexArr = [];
         let copyRange = [], RowlChange = false, HasMC = false;
+
         for(let s = 0; s < Store.luckysheet_select_save.length; s++){
             let range = Store.luckysheet_select_save[s];
-            
-            if(range.row[0] < minR){
-                minR = range.row[0];
-            }
 
-            if(range.row[1] > maxR){
-                maxR = range.row[1];
-            }
+            let r1 = range.row[0],
+                r2 = range.row[1];
+            let c1 = range.column[0],
+                c2 = range.column[1];
 
-            if(range.column[0] < minC){
-                minC = range.column[0];
-            }
-
-            if(range.column[1] > maxC){
-                maxC = range.column[1];
-            }
-
-            for(let copyR = range.row[0]; copyR <= range.row[1]; copyR++){
+            for(let copyR = r1; copyR <= r2; copyR++){
                 if (Store.config["rowhidden"] != null && Store.config["rowhidden"][copyR] != null) {
                     continue;
+                }
+
+                if(!rowIndexArr.includes(copyR)){
+                    rowIndexArr.push(copyR);
                 }
 
                 if (Store.config["rowlen"] != null && (copyR in Store.config["rowlen"])){
                     RowlChange = true;
                 }
 
-                for(let copyC = range.column[0]; copyC <= range.column[1]; copyC++){
+                for(let copyC = c1; copyC <= c2; copyC++){
+                    if (Store.config["colhidden"] != null && Store.config["colhidden"][copyC] != null) {
+                        continue;
+                    }
+
+                    if(!colIndexArr.includes(copyC)){
+                        colIndexArr.push(copyC);
+                    }
+
                     let cell = Store.flowdata[copyR][copyC];
 
                     if(getObjType(cell) == "object" && ("mc" in cell) && cell.mc.rs != null){
@@ -169,20 +169,31 @@ const selection = {
             d = editor.deepCopyFlowData(Store.flowdata);
         let colgroup = "";
 
-        for (let r = minR; r <= maxR; r++) {
+        // rowIndexArr = rowIndexArr.sort(); 
+        // colIndexArr = colIndexArr.sort();
+
+        for (let i = 0; i < rowIndexArr.length; i++) {
+            let r = rowIndexArr[i];
+
             if (Store.config["rowhidden"] != null && Store.config["rowhidden"][r] != null) {
                 continue;
             }
 
             cpdata += '<tr>';
 
-            for (let c = minC; c <= maxC; c++) {
+            for (let j = 0; j < colIndexArr.length; j++) {
+                let c = colIndexArr[j];
+
+                if (Store.config["colhidden"] != null && Store.config["colhidden"][c] != null) {
+                    continue;
+                }
+
                 let column = '<td ${span} style="${style}">';
 
                 if (d[r] != null && d[r][c] != null) {
                     let style = "", span = "";
 
-                    if(r == minR){
+                    if(r == rowIndexArr[0]){
                         if(Store.config == null || Store.config["columnlen"] == null || Store.config["columnlen"][c.toString()] == null){
                             colgroup += '<colgroup width="72px"></colgroup>';
                         }
@@ -191,7 +202,7 @@ const selection = {
                         }
                     }
 
-                    if(c == minC){
+                    if(c == colIndexArr[0]){
                         if(Store.config == null || Store.config["rowlen"] == null || Store.config["rowlen"][r.toString()] == null){
                             style += 'height:19px;';
                         }
@@ -470,7 +481,7 @@ const selection = {
 
                     column += "";
 
-                    if(r == minR){
+                    if(r == rowIndexArr[0]){
                         if(Store.config == null || Store.config["columnlen"] == null || Store.config["columnlen"][c.toString()] == null){
                             colgroup += '<colgroup width="72px"></colgroup>';
                         }
@@ -479,7 +490,7 @@ const selection = {
                         }
                     }
 
-                    if(c == minC){
+                    if(c == colIndexArr[0]){
                         if(Store.config == null || Store.config["rowlen"] == null || Store.config["rowlen"][r.toString()] == null){
                             style += 'height:19px;';
                         }
@@ -522,7 +533,7 @@ const selection = {
     copybyformat: function (e, txt) {//copy事件
         let clipboardData = window.clipboardData; //for IE
         if (!clipboardData) { // for chrome
-            clipboardData = e.originalEvent.clipboardData;
+            clipboardData = e.originalEvent && e.originalEvent.clipboardData;
         }
 
         Store.luckysheet_selection_range = [{ "row": Store.luckysheet_select_save[0].row, "column": Store.luckysheet_select_save[0].column }];
@@ -554,6 +565,9 @@ const selection = {
             return;
         }
 
+        const _locale = locale();
+        const local_drag = _locale.drag;
+
         let textarea = $("#luckysheet-copy-content");
         textarea.focus();
         textarea.select();
@@ -577,15 +591,20 @@ const selection = {
             }
             else {
                 if(isEditMode()){
-                    alert("在表格中进行复制粘贴: Ctrl + C 进行复制, Ctrl + V 进行粘贴, Ctrl + X 进行剪切");
+                    alert(local_drag.pasteMustKeybordAlert);
                 }
                 else{
-                    tooltip.info("在表格中进行复制粘贴", "<span style='line-height: 1.0;font-size:36px;font-weight: bold;color:#666;'>Ctrl + C</span>&nbsp;&nbsp;进行复制<br/><span style='line-height: 1.0;font-size:36px;font-weight: bold;color:#666;'>Ctrl + V</span>&nbsp;&nbsp;进行粘贴<br/><span style='line-height: 1.0;font-size:36px;font-weight: bold;color:#666;'>Ctrl + X</span>&nbsp;&nbsp;进行剪切");
+                    tooltip.info(local_drag.pasteMustKeybordAlertHTMLTitle, local_drag.pasteMustKeybordAlertHTML);
                 }
             }
         }, 10);
     },
     pasteHandler: function (data, borderInfo) {
+
+        if(!checkProtectionLockedRangeList(Store.luckysheet_select_save, Store.currentSheetIndex)){
+            return;
+        }
+
         if(Store.allowEdit===false){
             return;
         }
@@ -721,11 +740,19 @@ const selection = {
 
             Store.luckysheet_select_save = [{ "row": [minh, maxh], "column": [minc, maxc] }];
             
+            
             if(addr > 0 || addc > 0 || RowlChange){
-                jfrefreshgrid(d, Store.luckysheet_select_save, cfg, null, true);
+                let allParam = {
+                    "cfg": cfg,
+                    "RowlChange": true
+                }
+                jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
             }
             else{
-                jfrefreshgrid(d, Store.luckysheet_select_save, cfg);
+                let allParam = {
+                    "cfg": cfg
+                }
+                jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
                 selectHightlightShow();
             }
         }
@@ -790,7 +817,10 @@ const selection = {
             last["column"] = [curC, curC + clen - 1];
 
             if (addr > 0 || addc > 0) {
-                jfrefreshgrid(d, Store.luckysheet_select_save, null, null, true);
+                let allParam = {
+                    "RowlChange": true
+                }
+                jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
             }
             else {
                 jfrefreshgrid(d, Store.luckysheet_select_save);
@@ -799,6 +829,9 @@ const selection = {
         }
     },
     pasteHandlerOfCutPaste: function(copyRange){
+        if(!checkProtectionLockedRangeList(Store.luckysheet_select_save, Store.currentSheetIndex)){
+            return;
+        }
         if(Store.allowEdit === false){
             return;
         }
@@ -1226,6 +1259,9 @@ const selection = {
         }
     },
     pasteHandlerOfCopyPaste: function(copyRange){
+        if(!checkProtectionLockedRangeList(Store.luckysheet_select_save, Store.currentSheetIndex)){
+            return;
+        }
         let cfg = $.extend(true, {}, Store.config);
         if(cfg["merge"] == null){
             cfg["merge"] = {};
@@ -1431,7 +1467,7 @@ const selection = {
                                 func = "=" + formula.functionCopy(func, "left", Math.abs(offsetCol));
                             }
 
-                            let funcV = formula.execfunction(func, h, c, true);
+                            let funcV = formula.execfunction(func, h, c, undefined, true);
 
                             if(value.spl != null){
                                 value.f = funcV[2];
@@ -1521,14 +1557,30 @@ const selection = {
 
         if(copyRowlChange || addr > 0 || addc > 0){
             cfg = rowlenByRange(d, minh, maxh, cfg);
-            jfrefreshgrid(d, Store.luckysheet_select_save, cfg, cdformat, true, dataVerification);
+
+            let allParam = {
+                "cfg": cfg,
+                "RowlChange": true,
+                "cdformat": cdformat,
+                "dataVerification": dataVerification
+            }
+            jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
         }
         else{
-            jfrefreshgrid(d, Store.luckysheet_select_save, cfg, cdformat, null, dataVerification);
+            let allParam = {
+                "cfg": cfg,
+                "cdformat": cdformat,
+                "dataVerification": dataVerification
+            }
+            jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
+            
             selectHightlightShow();
         }
     },
     pasteHandlerOfPaintModel: function(copyRange){
+        if(!checkProtectionLockedRangeList(Store.luckysheet_select_save, Store.currentSheetIndex)){
+            return;
+        }
         let cfg = $.extend(true, {}, Store.config);
         if(cfg["merge"] == null){
             cfg["merge"] = {};
@@ -1752,10 +1804,23 @@ const selection = {
 
         if(copyRowlChange){
             cfg = rowlenByRange(d, minh, maxh, cfg);
-            jfrefreshgrid(d, Store.luckysheet_select_save, cfg, cdformat, true, dataVerification);
+
+            let allParam = {
+                "cfg": cfg,
+                "RowlChange": true,
+                "cdformat": cdformat,
+                "dataVerification": dataVerification
+            }
+            jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
         }
         else{
-            jfrefreshgrid(d, Store.luckysheet_select_save, cfg, cdformat, null, dataVerification);
+            let allParam = {
+                "cfg": cfg,
+                "cdformat": cdformat,
+                "dataVerification": dataVerification
+            }
+            jfrefreshgrid(d, Store.luckysheet_select_save, allParam);
+            
             selectHightlightShow();
         }
     },

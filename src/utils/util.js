@@ -117,70 +117,108 @@ function rgbTohex(color) {
 };
 
 //列下标  字母转数字
-function ABCatNum(abc) {
-    abc = abc.toUpperCase();
+function ABCatNum(a) {
+    // abc = abc.toUpperCase();
 
-    let abc_len = abc.length;
-    if (abc_len == 0) {
+    // let abc_len = abc.length;
+    // if (abc_len == 0) {
+    //     return NaN;
+    // }
+
+    // let abc_array = abc.split("");
+    // let wordlen = columeHeader_word.length;
+    // let ret = 0;
+
+    // for (let i = abc_len - 1; i >= 0; i--) {
+    //     if (i == abc_len - 1) {
+    //         ret += columeHeader_word_index[abc_array[i]];
+    //     }
+    //     else {
+    //         ret += Math.pow(wordlen, abc_len - i - 1) * (columeHeader_word_index[abc_array[i]] + 1);
+    //     }
+    // }
+
+    // return ret;
+    if(a==null || a.length==0){
         return NaN;
     }
-
-    let abc_array = abc.split("");
-    let wordlen = columeHeader_word.length;
-    let ret = 0;
-
-    for (let i = abc_len - 1; i >= 0; i--) {
-        if (i == abc_len - 1) {
-            ret += columeHeader_word_index[abc_array[i]];
-        }
-        else {
-            ret += Math.pow(wordlen, abc_len - i - 1) * (columeHeader_word_index[abc_array[i]] + 1);
-        }
+    var str=a.toLowerCase().split("");
+    var num=0;
+    var al = str.length;
+    var getCharNumber = function(charx){
+        return charx.charCodeAt() -96;
+    };
+    var numout = 0;
+    var charnum = 0;
+    for(var i = 0; i < al; i++){
+        charnum = getCharNumber(str[i]);
+        numout += charnum * Math.pow(26, al-i-1);
+    };
+    // console.log(a, numout-1);
+    if(numout==0){
+        return NaN;
     }
-
-    return ret;
+    return numout-1;
 };
 
 //列下标  数字转字母
-function chatatABC(index) {
-    let wordlen = columeHeader_word.length;
+function chatatABC(n) {
+    // let wordlen = columeHeader_word.length;
 
-    if (index < wordlen) {
-        return columeHeader_word[index];
-    }
-    else {
-        let last = 0, pre = 0, ret = "";
-        let i = 1, n = 0;
+    // if (index < wordlen) {
+    //     return columeHeader_word[index];
+    // }
+    // else {
+    //     let last = 0, pre = 0, ret = "";
+    //     let i = 1, n = 0;
 
-        while (index >= (wordlen / (wordlen - 1)) * (Math.pow(wordlen, i++) - 1)) {
-            n = i;
-        }
+    //     while (index >= (wordlen / (wordlen - 1)) * (Math.pow(wordlen, i++) - 1)) {
+    //         n = i;
+    //     }
 
-        let index_ab = index - (wordlen / (wordlen - 1)) * (Math.pow(wordlen, n - 1) - 1);//970
-        last = index_ab + 1;
+    //     let index_ab = index - (wordlen / (wordlen - 1)) * (Math.pow(wordlen, n - 1) - 1);//970
+    //     last = index_ab + 1;
 
-        for (let x = n; x > 0; x--) {
-            let last1 = last, x1 = x;//-702=268, 3
+    //     for (let x = n; x > 0; x--) {
+    //         let last1 = last, x1 = x;//-702=268, 3
 
-            if (x == 1) {
-                last1 = last1 % wordlen;
+    //         if (x == 1) {
+    //             last1 = last1 % wordlen;
 
-                if (last1 == 0) {
-                    last1 = 26;
-                }
+    //             if (last1 == 0) {
+    //                 last1 = 26;
+    //             }
 
-                return ret + columeHeader_word[last1 - 1];
-            }
+    //             return ret + columeHeader_word[last1 - 1];
+    //         }
 
-            last1 = Math.ceil(last1 / Math.pow(wordlen, x - 1));
-            //last1 = last1 % wordlen;
-            ret += columeHeader_word[last1 - 1];
+    //         last1 = Math.ceil(last1 / Math.pow(wordlen, x - 1));
+    //         //last1 = last1 % wordlen;
+    //         ret += columeHeader_word[last1 - 1];
 
-            if (x > 1) {
-                last = last - (last1 - 1) * wordlen;
-            }
-        }
-    }
+    //         if (x > 1) {
+    //             last = last - (last1 - 1) * wordlen;
+    //         }
+    //     }
+    // }
+
+    var orda = 'a'.charCodeAt(0); 
+   
+    var ordz = 'z'.charCodeAt(0); 
+   
+    var len = ordz - orda + 1; 
+   
+    var s = ""; 
+   
+    while( n >= 0 ) { 
+   
+        s = String.fromCharCode(n % len + orda) + s; 
+   
+        n = Math.floor(n / len) - 1; 
+   
+    } 
+   
+    return s.toUpperCase(); 
 };
 
 function ceateABC(index) {
@@ -337,7 +375,18 @@ function luckysheetfontformat(format) {
             }
             else {
 
-                fontfamily = fontarray[fontjson[format.ff]];
+                // fontfamily = fontarray[fontjson[format.ff]];
+                fontfamily = format.ff;
+
+                fontfamily = fontfamily.replace(/"/g, "").replace(/'/g, "");
+
+                if(fontfamily.indexOf(" ")>-1){
+                    fontfamily = '"' + fontfamily + '"';
+                }
+
+                if(fontfamily!=null && document.fonts && !document.fonts.check("12px "+fontfamily)){
+                    menuButton.addFontTolist(fontfamily);
+                }
             }
 
             if (fontfamily == null) {
@@ -386,15 +435,13 @@ function luckysheetactiveCell() {
 
 //单元格编辑聚焦
 function luckysheetContainerFocus() {
-    // $("#" + Store.container).attr("tabindex", 0).focus({ 
+    // $("#" + Store.container).focus({ 
     //     preventScroll: true 
     // });
-
+    
     // fix jquery error: Uncaught TypeError: ((n.event.special[g.origType] || {}).handle || g.handler).apply is not a function
 
-    $("#" + Store.container).focus({ 
-        preventScroll: true 
-    });
+    $("#" + Store.container).attr("tabindex", 0).focus();
 }
 
 //数字格式
@@ -626,6 +673,70 @@ function loadLinks(urls) {
     }
 }
 
+function transformRangeToAbsolute(txt1){
+    if(txt1 ==null ||txt1.length==0){
+        return null;
+    }
+
+    let txtArray = txt1.split(",");
+    let ret = "";
+    for(let i=0;i<txtArray.length;i++){
+        let txt = txtArray[i];
+        let txtSplit = txt.split("!"), sheetName="", rangeTxt="";
+        if(txtSplit.length>1){
+            sheetName = txtSplit[0];
+            rangeTxt = txtSplit[1];
+        }
+        else{
+            rangeTxt = txtSplit[0];
+        }
+
+        let rangeTxtArray = rangeTxt.split(":");
+
+        let rangeRet = "";
+        for(let a=0;a<rangeTxtArray.length;a++){
+            let t = rangeTxtArray[a];
+
+            let row = t.replace(/[^0-9]/g, "");
+            let col = t.replace(/[^A-Za-z]/g, "");
+            let rangeTT = ""
+            if(col!=""){
+                rangeTT += "$" + col;
+            }
+
+            if(row!=""){
+                rangeTT += "$" + row;
+            }
+
+            rangeRet+=rangeTT+":";
+        }
+
+        rangeRet = rangeRet.substr(0, rangeRet.length-1);
+
+        ret += sheetName + rangeRet + ",";
+    }
+
+    return ret.substr(0, ret.length-1); 
+}
+
+function openSelfModel(id, isshowMask=true){
+    let $t = $("#"+id)
+            .find(".luckysheet-modal-dialog-content")
+            .css("min-width", 300)
+            .end(), 
+        myh = $t.outerHeight(), 
+        myw = $t.outerWidth();
+    let winw = $(window).width(), winh = $(window).height();
+    let scrollLeft = $(document).scrollLeft(), scrollTop = $(document).scrollTop();
+    $t.css({ 
+    "left": (winw + scrollLeft - myw) / 2, 
+    "top": (winh + scrollTop - myh) / 3 
+    }).show();
+
+    if(isshowMask){
+        $("#luckysheet-modal-dialog-mask").show();
+    }
+}
 
 
 export {
@@ -651,5 +762,7 @@ export {
     seriesLoadScripts,
     parallelLoadScripts,
     loadLinks,
-    luckysheetContainerFocus
+    luckysheetContainerFocus,
+    transformRangeToAbsolute,
+    openSelfModel
 }

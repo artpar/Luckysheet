@@ -4,16 +4,24 @@ import menuButton from './menuButton';
 import conditionformat from './conditionformat';
 import alternateformat from './alternateformat';
 import dataVerificationCtrl from './dataVerificationCtrl';
+import {checkProtectionLocked,checkProtectionCellHidden}  from './protection';
 import { chatatABC } from '../utils/util';
 import { isEditMode } from '../global/validate';
-import { getcellvalue } from '../global/getdata';
+import { getcellvalue,getInlineStringStyle } from '../global/getdata';
 import { valueShowEs } from '../global/format';
 import formula from '../global/formula';
 import { luckysheetRangeLast } from '../global/cursorPos';
 import cleargridelement from '../global/cleargridelement';
+import {isInlineStringCell} from './inlineString';
 import Store from '../store';
 
 export function luckysheetupdateCell(row_index1, col_index1, d, cover, isnotfocus) {
+
+    if(!checkProtectionLocked(row_index1, col_index1, Store.currentSheetIndex)){
+        $("#luckysheet-functionbox-cell").blur();
+        return;
+    }
+
     if(isEditMode() || Store.allowEdit===false){//此模式下禁用单元格编辑
         return;
     }
@@ -135,11 +143,17 @@ export function luckysheetupdateCell(row_index1, col_index1, d, cover, isnotfocu
 
         
         if (!cover) {
-            if(cell.f!=null){
+            if(isInlineStringCell(cell)){
+                value = getInlineStringStyle(row_index, col_index, d);
+            }
+            else if(cell.f!=null){
                 value = getcellvalue(row_index, col_index, d, "f");
             }
             else{
                 value = valueShowEs(row_index, col_index, d);
+                if(cell.qp=="1"){
+                    value = "'" + value;
+                }
             }
         }
         
@@ -181,10 +195,15 @@ export function luckysheetupdateCell(row_index1, col_index1, d, cover, isnotfocu
     if((value == null || value.toString() == "") && !cover){
         value = "<br/>";
     }
-
-    $("#luckysheet-rich-text-editor").html(value);
-    if (!isnotfocus) {
-        luckysheetRangeLast($("#luckysheet-rich-text-editor")[0]);
+    
+    if(!checkProtectionCellHidden(row_index, col_index, Store.currentSheetIndex) && value.length>0 && value.substr(0, 63)=='<span dir="auto" class="luckysheet-formula-text-color">=</span>'){
+        $("#luckysheet-rich-text-editor").html("");
+    }
+    else{
+        $("#luckysheet-rich-text-editor").html(value);
+        if (!isnotfocus) {
+            luckysheetRangeLast($("#luckysheet-rich-text-editor")[0]);
+        }
     }
 
     if(isCenter){

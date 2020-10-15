@@ -14,6 +14,7 @@ import { selectHightlightShow, selectIsOverlap } from './select';
 import selection from './selection';
 import searchReplace from './searchReplace';
 import controlHistory from './controlHistory';
+import imageCtrl from './imageCtrl';
 
 import { 
     getByteLen,
@@ -25,20 +26,31 @@ import formula from '../global/formula';
 import cleargridelement from '../global/cleargridelement';
 import tooltip from '../global/tooltip';
 import locale from '../locale/locale';
+import {enterKeyControll} from './inlineString';
 import Store from '../store';
 
 
 let luckysheet_shiftkeydown = false;
 
-function formulaMoveEvent(dir, ctrlKey, shiftKey){
-    if ($("#luckysheet-formula-search-c").is(":visible")) {
-        let $up = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item-active").next();
-        if ($up.length == 0) {
-            $up = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item").first();
+function formulaMoveEvent(dir, ctrlKey, shiftKey, event){
+    if ($("#luckysheet-formula-search-c").is(":visible") && (dir=="up" || dir=="down") ) {
+        let $obj;
+        if(dir=="down"){
+            $obj = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item-active").next();
+            if ($obj.length == 0) {
+                $obj = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item").first();
+            }
         }
+        else if(dir=="up"){
+            $obj = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item-active").prev();
+            if ($obj.length == 0) {
+                $obj = $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item").last();
+            }
+        }
+        
 
         $("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item").removeClass("luckysheet-formula-search-item-active");
-        $up.addClass("luckysheet-formula-search-item-active");
+        $obj.addClass("luckysheet-formula-search-item-active");
 
         event.preventDefault();
     }
@@ -76,6 +88,7 @@ function formulaMoveEvent(dir, ctrlKey, shiftKey){
 
                 luckysheetMoveHighlightCell(dir_n, step, "rangeOfFormula");
             }   
+            event.preventDefault();
         }
         else if(formula.israngeseleciton()){
             let anchor = $(window.getSelection().anchorNode);
@@ -150,6 +163,7 @@ function formulaMoveEvent(dir, ctrlKey, shiftKey){
                     luckysheetMoveHighlightCell(dir_n, step, "rangeOfFormula");
                 } 
             }
+            event.preventDefault();
         }
         else if(!ctrlKey && !shiftKey){
             let anchor = $(window.getSelection().anchorNode);
@@ -303,7 +317,13 @@ export function keyboardInitial(){
         
         let $inputbox = $("#luckysheet-input-box");
         
-        if (kcode == keycode.ENTER && parseInt($inputbox.css("top")) > 0) {
+        if((altKey || event.metaKey) && kcode == keycode.ENTER && parseInt($inputbox.css("top")) > 0){
+            let last = Store.luckysheet_select_save[Store.luckysheet_select_save.length - 1];
+            let row_index = last["row_focus"], col_index = last["column_focus"];
+            enterKeyControll(Store.flowdata[row_index][col_index]);
+            event.preventDefault();
+        }
+        else if (kcode == keycode.ENTER && parseInt($inputbox.css("top")) > 0) {
             if ($("#luckysheet-formula-search-c").is(":visible") && formula.searchFunctionCell != null) {
                 formula.searchFunctionEnter($("#luckysheet-formula-search-c").find(".luckysheet-formula-search-item-active"));
             }
@@ -412,6 +432,11 @@ export function keyboardInitial(){
                     $("#luckysheet-icon-bold").click();
                 }
                 else if (kcode == 67) {//Ctrl + C  复制
+                    if(imageCtrl.currentImgId != null){
+                        imageCtrl.copyImgItem(event);
+                        return;
+                    }
+
                     //复制时存在格式刷状态，取消格式刷
                     if(menuButton.luckysheetPaintModelOn){
                         menuButton.cancelPaintModel();
@@ -727,9 +752,18 @@ export function keyboardInitial(){
 
                 selectHightlightShow();
             }
-            else if (kcode == keycode.DELETE) {
-                $("#luckysheet-delete-text").click();
+            else if (kcode == keycode.DELETE || kcode == keycode.BACKSPACE) {
+                if(imageCtrl.currentImgId != null){
+                    imageCtrl.removeImgItem();
+                }
+                else{
+                    $("#luckysheet-delete-text").click();
+                }
 
+                event.preventDefault();
+            }
+            else if(kcode == 8 && imageCtrl.currentImgId != null){
+                imageCtrl.removeImgItem();
                 event.preventDefault();
             }
             else if (kcode == keycode.UP) {
@@ -823,20 +857,23 @@ export function keyboardInitial(){
             event.preventDefault();
         }
         else if (kcode == keycode.UP && parseInt($inputbox.css("top")) > 0) {
-            formulaMoveEvent("up", ctrlKey, shiftKey);
+            formulaMoveEvent("up", ctrlKey, shiftKey,event);
         }
         else if (kcode == keycode.DOWN && parseInt($inputbox.css("top")) > 0) {
-            formulaMoveEvent("down", ctrlKey, shiftKey);
+            formulaMoveEvent("down", ctrlKey, shiftKey,event);
         }
         else if (kcode == keycode.LEFT && parseInt($inputbox.css("top")) > 0) {
-            formulaMoveEvent("left", ctrlKey, shiftKey);
+            formulaMoveEvent("left", ctrlKey, shiftKey,event);
         }
         else if (kcode == keycode.RIGHT && parseInt($inputbox.css("top")) > 0) {
-            formulaMoveEvent("right", ctrlKey, shiftKey);
+            formulaMoveEvent("right", ctrlKey, shiftKey,event);
         }
         else if (!((kcode >= 112 && kcode <= 123) || kcode <= 46 || kcode == 144 || kcode == 108 || event.ctrlKey || event.altKey || (event.shiftKey && (kcode == 37 || kcode == 38 || kcode == 39 || kcode == 40 || kcode == keycode.WIN || kcode == keycode.WIN_R || kcode == keycode.MENU))) || kcode == 8 || kcode == 32 || kcode == 46 || (event.ctrlKey && kcode == 86)) {
-            formula.functionInputHanddler($("#luckysheet-functionbox-cell"), $("#luckysheet-rich-text-editor"), kcode);
-            setCenterInputPosition(Store.luckysheetCellUpdate[0], Store.luckysheetCellUpdate[1], Store.flowdata);
+            // if(event.target.id!="luckysheet-input-box" && event.target.id!="luckysheet-rich-text-editor"){
+                formula.functionInputHanddler($("#luckysheet-functionbox-cell"), $("#luckysheet-rich-text-editor"), kcode);
+                setCenterInputPosition(Store.luckysheetCellUpdate[0], Store.luckysheetCellUpdate[1], Store.flowdata);
+            // }
+            
         }
     }).keyup(function (e) {
         let kcode = e.keyCode;
@@ -848,7 +885,9 @@ export function keyboardInitial(){
 
         //输入框中文输入后 shift 和 空格 处理
         if(parseInt($("#luckysheet-input-box").css("top")) > 0 && (kcode == 13 || kcode == 16 || kcode == 32)){
-            formula.functionInputHanddler($("#luckysheet-functionbox-cell"), $("#luckysheet-rich-text-editor"), kcode);
+            // if(event.target.id=="luckysheet-input-box" || event.target.id=="luckysheet-rich-text-editor"){
+            //     formula.functionInputHanddler($("#luckysheet-functionbox-cell"), $("#luckysheet-rich-text-editor"), kcode);
+            // }
         }
 
         e.preventDefault();
@@ -883,4 +922,15 @@ export function keyboardInitial(){
     }).change(function(){
         server.saveParam("na", null, $(this).val());
     });
+
+
+    // 右击菜单的input输入框 敲击Enter一样生效
+    $("#" + Store.container).add("input.luckysheet-mousedown-cancel").keydown(function (event) {
+
+        const element =  event.target.closest('.luckysheet-cols-menuitem');
+        if (typeof(element) != 'undefined' && element != null && event.keyCode === 13){
+            $(element).trigger('click');
+        }
+
+    })
 }

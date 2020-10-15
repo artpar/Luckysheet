@@ -23,6 +23,38 @@ import {
 import { getSheetIndex } from '../methods/get';
 import Store from '../store';
 
+function formulaHistoryHanddler(ctr, type="redo"){
+    if(ctr==null){
+        return;
+    }
+
+    let data = ctr.data;
+    if(type=="undo"){
+        data = ctr.curdata;
+    }
+    for(let s = 0; s < ctr.range.length; s++){
+        let st_r = ctr.range[s].row[0];
+        let ed_r = ctr.range[s].row[1];
+        let st_c = ctr.range[s].column[0];
+        let ed_c = ctr.range[s].column[1];
+
+        for(let r = st_r;r < ed_r + 1; r++){
+            for(let c = st_c; c < ed_c +1; c++){
+                if(r > data.length - 1){
+                    break;
+                }
+                // formula.execFunctionExist.push({ "r": r, "c": c, "i": ctr.sheetIndex });
+                if(data[r][c] == null || data[r][c].f==null || data[r][c].f==""){
+                    formula.delFunctionGroup(r,c,ctr.sheetIndex);
+                }
+                else if(data[r][c] != null && data[r][c].f!=null && data[r][c].f.length>0){
+                    formula.insertUpdateFunctionGroup(r,c,ctr.sheetIndex);
+                }
+            }
+        }
+    }
+}
+
 const controlHistory = {
     redo: function (e) {
         if (Store.jfredo.length == 0) {
@@ -37,29 +69,22 @@ const controlHistory = {
             sheetmanage.changeSheetExec(ctr.sheetIndex);
         }
 
+        // formula.execFunctionExist = [];
+
         if (ctr.type == "datachange") {
             //如果有单元格为null,则对应公式应该删除
-            for(let s = 0; s < ctr.range.length; s++){
-                let st_r = ctr.range[s].row[0];
-                let ed_r = ctr.range[s].row[1];
-                let st_c = ctr.range[s].column[0];
-                let ed_c = ctr.range[s].column[1];
-
-                for(let r = st_r;r < ed_r + 1; r++){
-                    for(let c = st_c; c < ed_c +1; c++){
-                        if(r > ctr.data.length - 1){
-                            break;
-                        }
-
-                        if(ctr.data[r][c] == null){
-                            formula.delFunctionGroup(r,c);
-                        }
-                    }
-                }
+            formulaHistoryHanddler(ctr);
+            
+            let allParam = {
+                "cfg": ctr.config,
+                "RowlChange": ctr.RowlChange,
+                "cdformat": ctr.cdformat,
+                "dataVerification": ctr.dataVerification,
+                "dynamicArray": ctr.dynamicArray
             }
-            formula.execFunctionGroup(null, null, null, null, ctr.data);//取之前的数据
 
-            jfrefreshgrid(ctr.data, ctr.range, ctr.config, ctr.cdformat, ctr.RowlChange, ctr.dataVerification);
+            jfrefreshgrid(ctr.data, ctr.range, allParam);
+            // formula.execFunctionGroup(null, null, null, null, ctr.data);//取之前的数据
         }
         else if (ctr.type == "pasteCut") {
             let s = {
@@ -90,23 +115,10 @@ const controlHistory = {
         }
         else if (ctr.type == "rangechange") {
             //如果有单元格为null,则对应公式应该删除
-            for(let s = 0; s < ctr.range.length; s++){
-                let st_r = ctr.range[s].row[0];
-                let ed_r = ctr.range[s].row[1];
-                let st_c = ctr.range[s].column[0];
-                let ed_c = ctr.range[s].column[1];
-
-                for(let r = st_r;r < ed_r + 1; r++){
-                    for(let c = st_c; c < ed_c +1; c++){
-                        if(ctr.data[r][c] == null){
-                            formula.delFunctionGroup(r,c);
-                        }
-                    }
-                }
-            }
-            formula.execFunctionGroup(null, null, null, null, ctr.data);//取之前的数据
+            formulaHistoryHanddler(ctr);
             
             jfrefreshrange(ctr.data, ctr.range, ctr.cdformat);
+            // formula.execFunctionGroup(null, null, null, null, ctr.data);//取之前的数据
         }
         else if (ctr.type == "resize") {
             Store.config = ctr.config;
@@ -320,7 +332,11 @@ const controlHistory = {
             server.saveParam("all", ctr.sheetIndex, ctr.oldcolor, { "k": "color" });
         }
         else if (ctr.type == "mergeChange") {
-            jfrefreshgrid(ctr.data, ctr.range, ctr.config);
+            let allParam = {
+                "cfg": ctr.config,
+            }
+
+            jfrefreshgrid(ctr.data, ctr.range, allParam);
         }
         else if (ctr.type == "updateDataVerification"){
             dataVerificationCtrl.ref(ctr.currentDataVerification, ctr.historyDataVerification, ctr.sheetIndex);
@@ -416,13 +432,24 @@ const controlHistory = {
         if (ctr.type == "datachange") {
             formula.execFunctionGroup();
 
-            jfrefreshgrid(ctr.curdata, ctr.range, ctr.curConfig, ctr.curCdformat, ctr.RowlChange, ctr.curDataVerification);
+            let allParam = {
+                "cfg": ctr.curConfig,
+                "RowlChange": ctr.RowlChange,
+                "cdformat": ctr.curCdformat,
+                "dataVerification": ctr.curDataVerification,
+                "dynamicArray": ctr.curDynamicArray
+            }
+
+            formulaHistoryHanddler(ctr, "undo");
+
+            jfrefreshgrid(ctr.curdata, ctr.range, allParam);
         }
         else if (ctr.type == "pasteCut") {
             jfrefreshgrid_pastcut(ctr.source, ctr.target, ctr.RowlChange);
         }
         else if (ctr.type == "rangechange") {
-            formula.execFunctionGroup();
+            // formula.execFunctionGroup();
+            formulaHistoryHanddler(ctr, "undo");
             jfrefreshrange(ctr.curdata, ctr.range, ctr.curCdformat);
         }
         else if (ctr.type == "resize") {
@@ -611,7 +638,11 @@ const controlHistory = {
             server.saveParam("all", ctr.sheetIndex, ctr.color, { "k": "color" });
         }
         else if (ctr.type == "mergeChange") {
-            jfrefreshgrid(ctr.curData, ctr.range, ctr.curConfig);
+            let allParam = {
+                "cfg": ctr.curConfig,
+            }
+
+            jfrefreshgrid(ctr.curData, ctr.range, allParam);
         }
         else if (ctr.type == "updateDataVerification"){
             dataVerificationCtrl.ref(ctr.historyDataVerification, ctr.currentDataVerification, ctr.sheetIndex);

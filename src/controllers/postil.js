@@ -8,6 +8,7 @@ import { getSheetIndex } from '../methods/get';
 import { getObjType } from '../utils/util';
 import luckysheetFreezen from './freezen';
 import menuButton from './menuButton';
+import {checkProtectionAuthorityNormal} from './protection';
 import server from './server';
 import Store from '../store';
 
@@ -27,6 +28,10 @@ const luckysheetPostil = {
 
         //点击批注框 聚焦
         $("#luckysheet-postil-showBoxs").off("mousedown.showPs").on("mousedown.showPs", ".luckysheet-postil-show", function(event){
+            if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects",false)){
+                return;
+            }
+            
             _this.currentObj = $(this).find(".luckysheet-postil-show-main");
 
             if($(this).hasClass("luckysheet-postil-show-active")){
@@ -51,6 +56,10 @@ const luckysheetPostil = {
 
         //批注框 改变大小
         $("#luckysheet-postil-showBoxs").off("mousedown.resize").on("mousedown.resize", ".luckysheet-postil-show .luckysheet-postil-dialog-resize .luckysheet-postil-dialog-resize-item", function(event){
+            if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects",false)){
+                return;
+            }
+            
             _this.currentObj = $(this).closest(".luckysheet-postil-show-main");
             _this.currentWinW = $("#luckysheet-cell-main")[0].scrollWidth;
             _this.currentWinH = $("#luckysheet-cell-main")[0].scrollHeight;
@@ -97,6 +106,10 @@ const luckysheetPostil = {
 
         //批注框 移动
         $("#luckysheet-postil-showBoxs").off("mousedown.move").on("mousedown.move", ".luckysheet-postil-show .luckysheet-postil-dialog-move .luckysheet-postil-dialog-move-item", function(event){
+            if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects",false)){
+                return;
+            }
+            
             _this.currentObj = $(this).closest(".luckysheet-postil-show-main");
             _this.currentWinW = $("#luckysheet-cell-main")[0].scrollWidth;
             _this.currentWinH = $("#luckysheet-cell-main")[0].scrollHeight;
@@ -368,7 +381,7 @@ const luckysheetPostil = {
                                     '<div class="luckysheet-postil-dialog-resize-item luckysheet-postil-dialog-resize-item-rb" data-type="rb"></div>' +
                                 '</div>' +
                                 '<div style="width:100%;height:100%;overflow:hidden;">' + 
-                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:18px;word-break:break-all;" spellcheck="false" contenteditable="true">' +
+                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:20px;box-sizing:border-box;text-align: center;;word-break:break-all;" spellcheck="false" contenteditable="true">' +
                                         value +
                                     '</div>' +
                                 '</div>' +
@@ -383,6 +396,9 @@ const luckysheetPostil = {
         }
     },
     newPs: function(r, c){
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects")){
+            return;
+        }
         let _this = this;
 
         let row = Store.visibledatarow[r], 
@@ -431,7 +447,7 @@ const luckysheetPostil = {
                                 '<div class="luckysheet-postil-dialog-resize-item luckysheet-postil-dialog-resize-item-rb" data-type="rb"></div>' +
                             '</div>' +
                             '<div style="width:100%;height:100%;overflow:hidden;">' + 
-                                '<div class="formulaInputFocus" style="width:132px;height:72px;line-height:18px;word-break:break-all;" spellcheck="false" contenteditable="true">' +
+                                '<div class="formulaInputFocus" style="width:132px;height:72px;line-height:20px;box-sizing:border-box;text-align: center;;word-break:break-all;" spellcheck="false" contenteditable="true">' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +
@@ -461,6 +477,10 @@ const luckysheetPostil = {
     },
     editPs: function(r, c){
         let _this = this;
+
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects")){
+            return;
+        }
 
         if($("#luckysheet-postil-show_"+ r +"_"+ c).length > 0){
             $("#luckysheet-postil-show_"+ r +"_"+ c).show();
@@ -519,7 +539,7 @@ const luckysheetPostil = {
                                     '<div class="luckysheet-postil-dialog-resize-item luckysheet-postil-dialog-resize-item-rb" data-type="rb"></div>' +
                                 '</div>' +
                                 '<div style="width:100%;height:100%;overflow:hidden;">' + 
-                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:18px;word-break:break-all;" spellcheck="false" contenteditable="true">' +
+                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:20px;box-sizing:border-box;text-align: center;;word-break:break-all;" spellcheck="false" contenteditable="true">' +
                                         value +
                                     '</div>' +
                                 '</div>' +
@@ -539,6 +559,10 @@ const luckysheetPostil = {
         _this.init();
     },
     delPs: function(r, c){
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "editObjects")){
+            return;
+        }
+
         if($("#luckysheet-postil-show_"+ r +"_"+ c).length > 0){
             $("#luckysheet-postil-show_"+ r +"_"+ c).remove();
         }
@@ -617,7 +641,7 @@ const luckysheetPostil = {
                                     '<div class="luckysheet-postil-dialog-resize-item luckysheet-postil-dialog-resize-item-rb" data-type="rb"></div>' +
                                 '</div>' +
                                 '<div style="width:100%;height:100%;overflow:hidden;">' + 
-                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:18px;word-break:break-all;" spellcheck="false" contenteditable="true">' +
+                                    '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:20px;box-sizing:border-box;text-align: center;;word-break:break-all;" spellcheck="false" contenteditable="true">' +
                                         value +
                                     '</div>' +
                                 '</div>' +
@@ -731,7 +755,7 @@ const luckysheetPostil = {
                                                 '<div class="luckysheet-postil-dialog-resize-item luckysheet-postil-dialog-resize-item-rb" data-type="rb"></div>' +
                                             '</div>' +
                                             '<div style="width:100%;height:100%;overflow:hidden;">' + 
-                                                '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:18px;word-break:break-all;" spellcheck="false" contenteditable="true">' +
+                                                '<div class="formulaInputFocus" style="width:'+ (width - 12) +'px;height:'+ (height - 12) +'px;line-height:20px;box-sizing:border-box;text-align: center;;word-break:break-all;" spellcheck="false" contenteditable="true">' +
                                                     value +
                                                 '</div>' +
                                             '</div>' +
@@ -799,7 +823,7 @@ const luckysheetPostil = {
         editor.webWorkerFlowDataCache(Store.flowdata);//worker存数据
 
         Store.luckysheetfile[getSheetIndex(Store.currentSheetIndex)].data = Store.flowdata;
-        formula.execFunctionGroupData = Store.flowdata;
+        // formula.execFunctionGroupData = Store.flowdata;
 
         //共享编辑模式
         if(server.allowUpdate){
@@ -825,7 +849,14 @@ const luckysheetPostil = {
             let r = id.split("luckysheet-postil-show_")[1].split("_")[0];
             let c = id.split("luckysheet-postil-show_")[1].split("_")[1];
 
-            _this.buildPs(r, c, Store.flowdata[r][c].ps);
+            let cell = Store.flowdata[r][c];
+            
+            if(cell != null && cell.ps != null){
+                _this.buildPs(r, c, cell.ps);
+            }
+            else{
+                $("#" + id).hide();
+            }
         });
     }
 }

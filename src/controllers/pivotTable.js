@@ -32,6 +32,7 @@ import {
 import sheetmanage from './sheetmanage';
 import luckysheetsizeauto from './resize';
 import server from './server';
+import {checkProtectionAuthorityNormal} from './protection';
 import Store from '../store';
 import locale from '../locale/locale';
 
@@ -617,6 +618,7 @@ const pivotTable = {
         }
     },
     createPivotTable: function (e) {
+
         if(isEditMode() || Store.allowEdit===false){
             return;
         }
@@ -733,7 +735,7 @@ const pivotTable = {
             jfrefreshgridall(data[0].length, data.length, data, null, Store.luckysheet_select_save, "datachangeAll", undefined, undefined,isRefreshCanvas);
         }
         else {
-            jfrefreshgrid(data, Store.luckysheet_select_save, undefined, undefined, undefined, undefined, undefined,isRefreshCanvas);
+            jfrefreshgrid(data, Store.luckysheet_select_save, {}, null, isRefreshCanvas);
             selectHightlightShow();
         }
 
@@ -745,6 +747,8 @@ const pivotTable = {
         if(index == null){
             index = Store.currentSheetIndex;
         }
+
+
 
         let file = Store.luckysheetfile[getSheetIndex(index)];
 
@@ -759,9 +763,14 @@ const pivotTable = {
             return;
         }
 
-        let slider = $("#luckysheet-modal-dialog-slider-pivot");
+        let slider = $("#luckysheet-modal-dialog-slider-pivot");        
+
         let isRangeClick = this.isPivotRange(row_index, col_index);
         if (isRangeClick && slider.is(":hidden")) {
+            if(!checkProtectionAuthorityNormal(index, "usePivotTablereports",false)){
+                // Store.luckysheet_select_status = false;
+                return;
+            }
             slider.show();
             luckysheetsizeauto();
             $("#luckysheet-sta-content").css("padding-right", 260);
@@ -3043,6 +3052,9 @@ const pivotTable = {
         return retdata;
     },
     drillDown: function(row_index, col_index){
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "usePivotTablereports")){
+            return;
+        }
         let _this = this;
 
         let cell = _this.pivotDatas[row_index][col_index];

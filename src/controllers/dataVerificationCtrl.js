@@ -1,6 +1,6 @@
 import { replaceHtml } from '../utils/util';
 import formula from '../global/formula';
-import { isRealNum } from '../global/validate';
+import { isRealNum, isRealNull } from '../global/validate';
 import { isdatetime, diff } from '../global/datecontroll';
 import { luckysheetrefreshgrid } from '../global/refresh';
 import tooltip from '../global/tooltip';
@@ -12,6 +12,7 @@ import { selectionCopyShow } from './select';
 import server from './server';
 import menuButton from './menuButton';
 import { getSheetIndex, getRangetxt } from '../methods/get';
+import locale from '../locale/locale';
 import Store from '../store';
 
 const dataVerificationCtrl = {
@@ -52,60 +53,87 @@ const dataVerificationCtrl = {
         'card': '身份证号码',
         'phone': '手机号'
     },
+    optionLabel_en: {
+        'number': 'numeric',
+        'number_integer': 'integer',
+        'number_decimal': 'decimal',
+        'bw': 'between',
+        'nb': 'not between',
+        'eq': 'equal to',
+        'ne': 'not equal to',
+        'gt': 'greater',
+        'lt': 'less than',
+        'gte': 'greater or equal to',
+        'lte': 'less than or equal to',
+        'include': 'include',
+        'exclude': 'not include',
+        'equal': 'equal to',
+        'bf': 'earlier than',
+        'nbf': 'not earlier than',
+        'af': 'later than',
+        'naf': 'not later than',
+        'card': 'identification number',
+        'phone': 'phone number'
+    },
     createDialog: function(){
         let _this = this;
+
+        const _locale = locale();
+        const dvText = _locale.dataVerification;
+        const toolbarText = _locale.toolbar;
+        const buttonText = _locale.button;
 
         $("#luckysheet-modal-dialog-mask").show();
         $("#luckysheet-dataVerification-dialog").remove();
 
         let content =  `<div class="box">
                             <div class="box-item" style="border-top:1px solid #E1E4E8;">
-                                <div class="box-item-title">单元格范围</div>
+                                <div class="box-item-title">${dvText.cellRange}</div>
                                 <div id="data-verification-range" class="range">
                                     <input class="formulaInputFocus" spellcheck="false">
-                                    <i class="fa fa-table" aria-hidden="true" title="点击选择单元格范围"></i>
+                                    <i class="fa fa-table" aria-hidden="true" title="${dvText.selectCellRange}"></i>
                                 </div>
                             </div>
                             <div class="box-item">
-                                <div class="box-item-title">验证条件</div>
+                                <div class="box-item-title">${dvText.verificationCondition}</div>
                                 <select id="data-verification-type-select">
-                                    <option value="dropdown">下拉列表</option>
-                                    <option value="checkbox">复选框</option>
-                                    <option value="number">数字</option>
-                                    <option value="number_integer">数字-整数</option>
-                                    <option value="number_decimal">数字-小数</option>
-                                    <option value="text_content">文本-内容</option>
-                                    <option value="text_length">文本-长度</option>
-                                    <option value="date">日期</option>
-                                    <option value="validity">有效性</option>
+                                    <option value="dropdown">${dvText.dropdown}</option>
+                                    <option value="checkbox">${dvText.checkbox}</option>
+                                    <option value="number">${dvText.number}</option>
+                                    <option value="number_integer">${dvText.number_integer}</option>
+                                    <option value="number_decimal">${dvText.number_decimal}</option>
+                                    <option value="text_content">${dvText.text_content}</option>
+                                    <option value="text_length">${dvText.text_length}</option>
+                                    <option value="date">${dvText.date}</option>
+                                    <option value="validity">${dvText.validity}</option>
                                 </select>
                                 <div class="show-box">
                                     <div class="show-box-item show-box-item-dropdown">
                                         <div class="range">
-                                            <input class="formulaInputFocus data-verification-value1" placeholder="请输入选项，以英文逗号分隔，如1,2,3,4,5" spellcheck="false">
-                                            <i class="fa fa-table" aria-hidden="true" title="点击选择单元格范围"></i>
+                                            <input class="formulaInputFocus data-verification-value1" placeholder="${dvText.placeholder1}" spellcheck="false">
+                                            <i class="fa fa-table" aria-hidden="true" title="${dvText.selectCellRange}"></i>
                                         </div>
                                     </div>
                                     <div class="show-box-item show-box-item-checkbox">
                                         <div class="check-box">
-                                            <span>选择时 ——</span>
-                                            <input type="text" class="data-verification-value1" placeholder="请输入内容">
+                                            <span>${dvText.selected} ——</span>
+                                            <input type="text" class="data-verification-value1" placeholder="${dvText.placeholder2}">
                                         </div>
                                         <div class="check-box">
-                                            <span>未选择 ——</span>
-                                            <input type="text" class="data-verification-value2" placeholder="请输入内容">
+                                            <span>${dvText.notSelected} ——</span>
+                                            <input type="text" class="data-verification-value2" placeholder="${dvText.placeholder2}">
                                         </div>
                                     </div>
                                     <div class="show-box-item show-box-item-number">
                                         <select id="data-verification-number-select">
-                                            <option value="bw">介于</option>
-                                            <option value="nb">不介于</option>
-                                            <option value="eq">等于</option>
-                                            <option value="ne">不等于</option>
-                                            <option value="gt">大于</option>
-                                            <option value="lt">小于</option>
-                                            <option value="gte">大于等于</option>
-                                            <option value="lte">小于等于</option>
+                                            <option value="bw">${dvText.between}</option>
+                                            <option value="nb">${dvText.notBetween}</option>
+                                            <option value="eq">${dvText.equal}</option>
+                                            <option value="ne">${dvText.notEqualTo}</option>
+                                            <option value="gt">${dvText.moreThanThe}</option>
+                                            <option value="lt">${dvText.lessThan}</option>
+                                            <option value="gte">${dvText.greaterOrEqualTo}</option>
+                                            <option value="lte">${dvText.lessThanOrEqualTo}</option>
                                         </select>
                                         <div class="input input1">
                                             <input type="number" class="data-verification-value1" placeholder="1">
@@ -113,29 +141,29 @@ const dataVerificationCtrl = {
                                             <input type="number" class="data-verification-value2" placeholder="100">
                                         </div>
                                         <div class="input input2">
-                                            <input type="number" class="data-verification-value1" placeholder="数组，如10">
+                                            <input type="number" class="data-verification-value1" placeholder="${dvText.placeholder3}">
                                         </div>
                                     </div>
                                     <div class="show-box-item show-box-item-text">
                                         <select id="data-verification-text-select">
-                                            <option value="include">包括</option>
-                                            <option value="exclude">不包括</option>
-                                            <option value="equal">等于</option>
+                                            <option value="include">${dvText.include}</option>
+                                            <option value="exclude">${dvText.exclude}</option>
+                                            <option value="equal">${dvText.equal}</option>
                                         </select>
                                         <div class="input input2">
-                                            <input type="text" class="data-verification-value1" placeholder="请输入指定的文本"/>
+                                            <input type="text" class="data-verification-value1" placeholder="${dvText.placeholder4}"/>
                                         </div>
                                     </div>
                                     <div class="show-box-item show-box-item-textLength">
                                         <select id="data-verification-textLength-select">
-                                            <option value="bw">介于</option>
-                                            <option value="nb">不介于</option>
-                                            <option value="eq">等于</option>
-                                            <option value="ne">不等于</option>
-                                            <option value="gt">大于</option>
-                                            <option value="lt">小于</option>
-                                            <option value="gte">大于等于</option>
-                                            <option value="lte">小于等于</option>
+                                            <option value="bw">${dvText.between}</option>
+                                            <option value="nb">${dvText.notBetween}</option>
+                                            <option value="eq">${dvText.equal}</option>
+                                            <option value="ne">${dvText.notEqualTo}</option>
+                                            <option value="gt">${dvText.moreThanThe}</option>
+                                            <option value="lt">${dvText.lessThan}</option>
+                                            <option value="gte">${dvText.greaterOrEqualTo}</option>
+                                            <option value="lte">${dvText.lessThanOrEqualTo}</option>
                                         </select>
                                         <div class="input input1">
                                             <input type="number" class="data-verification-value1" placeholder="1">
@@ -143,19 +171,19 @@ const dataVerificationCtrl = {
                                             <input type="number" class="data-verification-value2" placeholder="100">
                                         </div>
                                         <div class="input input2">
-                                            <input type="number" class="data-verification-value1" placeholder="数组，如10">
+                                            <input type="number" class="data-verification-value1" placeholder="${dvText.placeholder3}">
                                         </div>
                                     </div>
                                     <div class="show-box-item show-box-item-date">
                                         <select id="data-verification-date-select">
-                                            <option value="bw">介于</option>
-                                            <option value="nb">不介于</option>
-                                            <option value="eq">等于</option>
-                                            <option value="ne">不等于</option>
-                                            <option value="bf">早于</option>
-                                            <option value="nbf">不早于</option>
-                                            <option value="af">晚于</option>
-                                            <option value="naf">不晚于</option>
+                                            <option value="bw">${dvText.between}</option>
+                                            <option value="nb">${dvText.notBetween}</option>
+                                            <option value="eq">${dvText.equal}</option>
+                                            <option value="ne">${dvText.notEqualTo}</option>
+                                            <option value="bf">${dvText.earlierThan}</option>
+                                            <option value="nbf">${dvText.noEarlierThan}</option>
+                                            <option value="af">${dvText.laterThan}</option>
+                                            <option value="naf">${dvText.noLaterThan}</option>
                                         </select>
                                         <div class="input input1">
                                             <input type="date" class="data-verification-value1" placeholder="2020/9/10">
@@ -168,8 +196,8 @@ const dataVerificationCtrl = {
                                     </div>
                                     <div class="show-box-item show-box-item-validity">
                                         <select id="data-verification-validity-select">
-                                            <option value="card">身份证号码</option>
-                                            <option value="phone">手机号</option>
+                                            <option value="card">${dvText.identificationNumber}</option>
+                                            <option value="phone">${dvText.phoneNumber}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -177,18 +205,18 @@ const dataVerificationCtrl = {
                             <div class="box-item">
                                 <div class="check">
                                     <input type="checkbox" id="data-verification-remote" class="data-verification-remote">
-                                    <label for="data-verification-remote">自动远程获取选项</label>
+                                    <label for="data-verification-remote">${dvText.remote}</label>
                                 </div>
                                 <div class="check">
                                     <input type="checkbox" id="data-verification-prohibitInput">
-                                    <label for="data-verification-prohibitInput">输入数据无效时禁止输入</label>
+                                    <label for="data-verification-prohibitInput">${dvText.prohibitInput}</label>
                                 </div>
                                 <div class="check">
                                     <input type="checkbox" id="data-verification-hint-show">
-                                    <label for="data-verification-hint-show">选中单元格时显示提示语</label>
+                                    <label for="data-verification-hint-show">${dvText.hintShow}</label>
                                 </div>
                                 <div class="data-verification-hint-text">
-                                    <input type="text" placeholder="请输入选中单元格时显示的提示语">
+                                    <input type="text" placeholder="${dvText.placeholder5}">
                                 </div>
                             </div>
                         </div>`;
@@ -196,11 +224,11 @@ const dataVerificationCtrl = {
         $("body").append(replaceHtml(modelHTML, { 
             "id": "luckysheet-dataVerification-dialog", 
             "addclass": "luckysheet-dataVerification-dialog", 
-            "title": "数据验证", 
+            "title": toolbarText.dataVerification, 
             "content": content, 
-            "botton":  `<button id="luckysheet-dataVerification-dialog-confirm" class="btn btn-primary">确认</button>
-                        <button id="luckysheet-dataVerification-dialog-delete" class="btn btn-default">删除验证</button>
-                        <button class="btn btn-default luckysheet-model-close-btn">取消</button>`, 
+            "botton":  `<button id="luckysheet-dataVerification-dialog-confirm" class="btn btn-primary">${buttonText.confirm}</button>
+                        <button id="luckysheet-dataVerification-dialog-delete" class="btn btn-default">${dvText.deleteVerification}</button>
+                        <button class="btn btn-default luckysheet-model-close-btn">${buttonText.cancel}</button>`, 
             "style": "z-index:100003" 
         }));
         let $t = $("#luckysheet-dataVerification-dialog").find(".luckysheet-modal-dialog-content").css("min-width", 350).end(), 
@@ -219,6 +247,8 @@ const dataVerificationCtrl = {
     },
     init: function(){
         let _this = this;
+
+        const dvText = locale().dataVerification; 
 
         //单元格数据验证 类型是 下拉列表
         $(document).off("click.dropdownBtn").on("click.dropdownBtn", "#luckysheet-dataVerification-dropdown-btn", function(e) {
@@ -539,7 +569,7 @@ const dataVerificationCtrl = {
             let range = _this.getRangeByTxt(rangeTxt);
 
             if(range.length == 0){
-                tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '请选择单元格范围');
+                tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.selectCellRange2);
                 return;
             }
 
@@ -550,7 +580,7 @@ const dataVerificationCtrl = {
                 value1 = $("#luckysheet-dataVerification-dialog .show-box-item-dropdown .data-verification-value1").val().trim();
             
                 if(value1.length == 0){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '下拉列表选项不可为空');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo1);
                     return;
                 }
             }
@@ -559,29 +589,29 @@ const dataVerificationCtrl = {
                 value2 = $("#luckysheet-dataVerification-dialog .show-box-item-checkbox .data-verification-value2").val().trim();
             
                 if(value1.length == 0 || value2.length == 0){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '复选框内容不可为空');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo2);
                     return;
                 }
             }
             else if(type == 'number' || type == 'number_integer' || type == 'number_decimal'){
                 type2 = $("#luckysheet-dataVerification-dialog #data-verification-number-select").val();
-                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-number .data-verification-value1").val().trim();
+                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-number .input:visible .data-verification-value1").val().trim();
                 
                 if(!isRealNum(value1)){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是数值类型');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo3);
                     return;
                 }
 
                 if(type2 == 'bw' || type2 == 'nb'){
-                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-number .data-verification-value2").val().trim();
+                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-number .input:visible .data-verification-value2").val().trim();
                 
                     if(!isRealNum(value2)){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是数值类型');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo3);
                         return;
                     }
 
                     if(Number(value2) < Number(value1)){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '数值2不能小于数值1');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo4);
                         return;
                     }
                 }
@@ -591,52 +621,52 @@ const dataVerificationCtrl = {
                 value1 = $("#luckysheet-dataVerification-dialog .show-box-item-text .data-verification-value1").val().trim();
             
                 if(value1.length == 0){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '文本内容不能为空');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo5);
                     return;
                 }
             }
             else if(type == 'text_length'){
                 type2 = $("#luckysheet-dataVerification-dialog #data-verification-textLength-select").val();
-                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-textLength .data-verification-value1").val().trim();
+                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-textLength .input:visible .data-verification-value1").val().trim();
                 
                 if(!isRealNum(value1)){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是数值类型');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo3);
                     return;
                 }
 
                 if(type2 == 'bw' || type2 == 'nb'){
-                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-textLength .data-verification-value2").val().trim();
+                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-textLength .input:visible .data-verification-value2").val().trim();
                 
                     if(!isRealNum(value2)){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是数值类型');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo3);
                         return;
                     }
 
                     if(Number(value2) < Number(value1)){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '数值2不能小于数值1');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo4);
                         return;
                     }
                 }
             }
             else if(type == 'date'){
                 type2 = $("#luckysheet-dataVerification-dialog #data-verification-date-select").val();
-                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-date .data-verification-value1").val().trim();
+                value1 = $("#luckysheet-dataVerification-dialog .show-box-item-date .input:visible .data-verification-value1").val().trim();
                 
                 if(!isdatetime(value1)){
-                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是日期类型');
+                    tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo6);
                     return;
                 }
 
                 if(type2 == 'bw' || type2 == 'nb'){
-                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-date .data-verification-value2").val().trim();
+                    value2 = $("#luckysheet-dataVerification-dialog .show-box-item-date .input:visible .data-verification-value2").val().trim();
                 
                     if(!isdatetime(value2)){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '输入的值不是日期类型');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo6);
                         return;
                     }
 
                     if(diff(value1, value2) > 0){
-                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', '日期2不能小于日期1');
+                        tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.tooltipInfo7);
                         return;
                     }
                 }
@@ -699,6 +729,30 @@ const dataVerificationCtrl = {
 
         //删除验证按钮
         $(document).off("click.delete").on("click.delete", "#luckysheet-dataVerification-dialog-delete", function(e) {
+            let rangeTxt = $("#luckysheet-dataVerification-dialog #data-verification-range input").val().trim();
+            let range = _this.getRangeByTxt(rangeTxt);
+
+            if(range.length == 0){
+                tooltip.info('<i class="fa fa-exclamation-triangle"></i>', dvText.selectCellRange2);
+                return;
+            }
+            
+            let historyDataVerification = $.extend(true, {}, _this.dataVerification);
+            let currentDataVerification = $.extend(true, {}, _this.dataVerification);
+
+            let str = range[range.length - 1].row[0],
+                edr = range[range.length - 1].row[1],
+                stc = range[range.length - 1].column[0],
+                edc = range[range.length - 1].column[1];
+
+            for(let r = str; r <= edr; r++){
+                for(let c = stc; c <= edc; c++){
+                    delete currentDataVerification[r + '_' + c];
+                }
+            }
+
+            _this.ref(historyDataVerification, currentDataVerification, Store.currentSheetIndex);
+            
             $("#luckysheet-modal-dialog-mask").hide();
             $("#luckysheet-dataVerification-dialog").hide();
         });
@@ -822,16 +876,20 @@ const dataVerificationCtrl = {
     rangeDialog: function(dataSource, txt){
         let _this = this;
 
+        const _locale = locale();
+        const dvText = _locale.dataVerification;
+        const buttonText = _locale.button;
+
         $("#luckysheet-modal-dialog-mask").hide();
         $("#luckysheet-dataVerificationRange-dialog").remove();
 
         $("body").append(replaceHtml(modelHTML, { 
             "id": "luckysheet-dataVerificationRange-dialog", 
             "addclass": "luckysheet-dataVerificationRange-dialog", 
-            "title": "点击选择单元格范围", 
-            "content": `<input readonly="readonly" placeholder="请选择单元格范围" value="${txt}"/>`, 
-            "botton":  `<button id="luckysheet-dataVerificationRange-dialog-confirm" class="btn btn-primary" data-source="${dataSource}">确认</button>
-                        <button id="luckysheet-dataVerificationRange-dialog-close" class="btn btn-default">关闭</button>`, 
+            "title": dvText.selectCellRange, 
+            "content": `<input readonly="readonly" placeholder="${dvText.selectCellRange2}" value="${txt}"/>`, 
+            "botton":  `<button id="luckysheet-dataVerificationRange-dialog-confirm" class="btn btn-primary" data-source="${dataSource}">${buttonText.confirm}</button>
+                        <button id="luckysheet-dataVerificationRange-dialog-close" class="btn btn-default">${buttonText.close}</button>`, 
             "style": "z-index:100003" 
         }));
         let $t = $("#luckysheet-dataVerificationRange-dialog")
@@ -925,6 +983,14 @@ const dataVerificationCtrl = {
                 'left': col - 20,
                 'top': row_pre + (row - row_pre - 20) / 2
             })
+
+            if($("#luckysheet-dataVerification-dropdown-List").is(":visible")){
+                let dataIndex = $("#luckysheet-dataVerification-dropdown-List").prop("data-index");
+                
+                if(dataIndex != (r + '_' + c)){
+                    $("#luckysheet-dataVerification-dropdown-List").hide();
+                }
+            }
         }
         else{
             $("#luckysheet-dataVerification-dropdown-List").hide();
@@ -932,11 +998,94 @@ const dataVerificationCtrl = {
 
         //提示语
         if(item.hintShow){
-            let hintText = item.hintText;
+            let hintText;
 
-            if(hintText.length == 0){
-                hintText += '<span style="color:#f5a623;">提示：</span>';
+            if(Store.lang == 'en'){
+                hintText = '<span style="color:#f5a623;">Hint: </span>';
+            }
+            else{
+                hintText = '<span style="color:#f5a623;">提示：</span>';
+            }
 
+            hintText += _this.getHintText(item);
+
+            $("#luckysheet-dataVerification-showHintBox").html(hintText).show().css({
+                'left': col_pre,
+                'top': row
+            });
+
+            return;
+        }
+        
+        //数据验证未通过
+        let cellValue = getcellvalue(r, c, null);
+
+        if(isRealNull(cellValue)){
+            return;
+        }
+
+        let validate = _this.validateCellData(cellValue, item);
+
+        if(!validate){
+            let failureText;
+
+            if(Store.lang == 'en'){
+                failureText = '<span style="color:#f72626;">Failure: </span>';
+            }
+            else{
+                failureText = '<span style="color:#f72626;">失效：</span>';
+            }
+
+            failureText += _this.getFailureText(item);
+
+            $("#luckysheet-dataVerification-showHintBox").html(failureText).show().css({
+                'left': col_pre,
+                'top': row
+            });
+        }
+    },
+    getHintText: function(item) {
+        let _this = this;
+
+        let hintText = item.hintText || '';
+
+        if(hintText.length == 0){
+            if(Store.lang == 'en'){
+                if(item.type == 'dropdown'){
+                    hintText += 'please select an option in the drop-down list';
+                }
+                else if(item.type == 'checkbox'){
+
+                }
+                else if(item.type == 'number' || item.type == 'number_integer' || item.type == 'number_decimal'){
+                    hintText += 'please enter a ' + _this.optionLabel_en[item.type] + ' ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
+
+                    if(item.type2 == 'bw' || item.type2 == 'nb'){
+                        hintText += ' and ' + item.value2;
+                    }
+                }
+                else if(item.type == 'text_content'){
+                    hintText += 'please enter text ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
+                }
+                else if(item.type == 'text_length'){
+                    hintText += 'please enter text with length ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
+                    
+                    if(item.type2 == 'bw' || item.type2 == 'nb'){
+                        hintText += ' and ' + item.value2;
+                    }
+                }
+                else if(item.type == 'date'){
+                    hintText += 'please enter a date ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
+
+                    if(item.type2 == 'bw' || item.type2 == 'nb'){
+                        hintText += ' and ' + item.value2;
+                    }
+                }
+                else if(item.type == 'validity'){
+                    hintText += 'please enter the correct ' + _this.optionLabel_en[item.type2];
+                }
+            }
+            else{
                 if(item.type == 'dropdown'){
                     hintText += '请选择下拉列表中的选项';
                 }
@@ -977,75 +1126,93 @@ const dataVerificationCtrl = {
                     hintText += '请输入正确的' + _this.optionLabel[item.type2];
                 }
             }
-            else{
-                hintText = '<span style="color:#f5a623;">提示：</span>' + hintText;
-            }
-
-            $("#luckysheet-dataVerification-showHintBox").html(hintText).show().css({
-                'left': col_pre,
-                'top': row
-            });
-
-            return;
-        }
-        
-        //数据验证未通过
-        let cellValue = getcellvalue(r, c, null, 'm');
-
-        if(cellValue == null || cellValue == ""){
-            return;
         }
 
-        let validate = _this.validateCellData(cellValue, item);
+        return hintText;
+    },
+    getFailureText: function(item) {
+        let _this = this;
 
-        if(!validate){
-            let hintText = '<span style="color:#f72626;">失效：</span>';
+        let failureText = '';
 
+        if(Store.lang == 'en'){
             if(item.type == 'dropdown'){
-                hintText += '你选择的不是下拉列表中的选项';
+                failureText += 'what you selected is not an option in the drop-down list';
             }
             else if(item.type == 'checkbox'){
 
             }
             else if(item.type == 'number' || item.type == 'number_integer' || item.type == 'number_decimal'){
-                hintText += '你输入的不是' + _this.optionLabel[item.type2] + item.value1;
+                failureText += 'what you entered is not a ' + _this.optionLabel_en[item.type] + ' ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
 
                 if(item.type2 == 'bw' || item.type2 == 'nb'){
-                    hintText += '和' + item.value2 + '之间';
+                    failureText += ' and ' + item.value2;
                 }
-
-                hintText += '的' + _this.optionLabel[item.type];
             }
             else if(item.type == 'text_content'){
-                hintText += '你输入的不是内容' + _this.optionLabel[item.type2] + item.value1 + '的文本';
+                failureText += 'what you entered is not text that ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
             }
             else if(item.type == 'text_length'){
-                hintText += '你输入的不是长度' + _this.optionLabel[item.type2] + item.value1;
+                failureText += 'the text you entered is not length ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
                 
                 if(item.type2 == 'bw' || item.type2 == 'nb'){
-                    hintText += '和' + item.value2 + '之间';
+                    failureText += ' and ' + item.value2;
                 }
-
-                hintText += '的文本';
             }
             else if(item.type == 'date'){
-                hintText += '你输入的不是' + _this.optionLabel[item.type2] + item.value1;
+                failureText += 'the date you entered is not ' + _this.optionLabel_en[item.type2] + ' ' + item.value1;
 
                 if(item.type2 == 'bw' || item.type2 == 'nb'){
-                    hintText += '和' + item.value2 + '之间';
+                    failureText += ' and ' + item.value2;
                 }
-
-                hintText += '的日期';
             }
             else if(item.type == 'validity'){
-                hintText += '你输入的不是一个正确的' + _this.optionLabel[item.type2];
+                failureText += 'what you entered is not a correct ' + _this.optionLabel_en[item.type2];
             }
-
-            $("#luckysheet-dataVerification-showHintBox").html(hintText).show().css({
-                'left': col_pre,
-                'top': row
-            });
         }
+        else{
+            if(item.type == 'dropdown'){
+                failureText += '你选择的不是下拉列表中的选项';
+            }
+            else if(item.type == 'checkbox'){
+
+            }
+            else if(item.type == 'number' || item.type == 'number_integer' || item.type == 'number_decimal'){
+                failureText += '你输入的不是' + _this.optionLabel[item.type2] + item.value1;
+
+                if(item.type2 == 'bw' || item.type2 == 'nb'){
+                    failureText += '和' + item.value2 + '之间';
+                }
+
+                failureText += '的' + _this.optionLabel[item.type];
+            }
+            else if(item.type == 'text_content'){
+                failureText += '你输入的不是内容' + _this.optionLabel[item.type2] + item.value1 + '的文本';
+            }
+            else if(item.type == 'text_length'){
+                failureText += '你输入的不是长度' + _this.optionLabel[item.type2] + item.value1;
+                
+                if(item.type2 == 'bw' || item.type2 == 'nb'){
+                    failureText += '和' + item.value2 + '之间';
+                }
+
+                failureText += '的文本';
+            }
+            else if(item.type == 'date'){
+                failureText += '你输入的不是' + _this.optionLabel[item.type2] + item.value1;
+
+                if(item.type2 == 'bw' || item.type2 == 'nb'){
+                    failureText += '和' + item.value2 + '之间';
+                }
+
+                failureText += '的日期';
+            }
+            else if(item.type == 'validity'){
+                failureText += '你输入的不是一个正确的' + _this.optionLabel[item.type2];
+            }
+        }
+
+        return failureText;
     },
     validateCellData: function(cellValue, item){
         let _this = this;
@@ -1249,7 +1416,11 @@ const dataVerificationCtrl = {
             optionHtml += `<div class="dropdown-List-item luckysheet-mousedown-cancel">${i}</div>`;
         })
 
-        $("#luckysheet-dataVerification-dropdown-List").html(optionHtml).show().css({
+        $("#luckysheet-dataVerification-dropdown-List")
+        .html(optionHtml)
+        .prop("data-index", rowIndex + '_' + colIndex)
+        .show()
+        .css({
             'width': col - col_pre - 1,
             'left': col_pre,
             'top': row,

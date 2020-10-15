@@ -1,8 +1,9 @@
 import { luckysheetfontformat } from '../utils/util';
 import menuButton from '../controllers/menuButton';
-import { getcellvalue } from './getdata';
+import { getcellvalue,checkstatusByCell } from './getdata';
 import { colLocationByIndex } from './location';
 import { hasChinaword, isRealNull } from './validate';
+import { isInlineStringCell } from '../controllers/inlineString';
 import Store from '../store';
 
 //计算范围行高
@@ -42,7 +43,7 @@ function rowlenByRange(d, r1, r2, cfg) {
                 continue;
             }
 
-            if(cell != null && cell.v != null){
+            if(cell != null && (cell.v != null || isInlineStringCell(cell)) ){
                 let cellWidth = colLocationByIndex(c)[1] - colLocationByIndex(c)[0] - 2;
 
                 let textInfo = getCellTextInfo(cell, canvas,{
@@ -54,7 +55,7 @@ function rowlenByRange(d, r1, r2, cfg) {
                 let computeRowlen = 0;
                 // console.log("rowlen", textInfo);
                 if(textInfo!=null){
-                    computeRowlen = textInfo.textHeightAll;
+                    computeRowlen = textInfo.textHeightAll+2;
                 }
 
                 // let fontset = luckysheetfontformat(cell);
@@ -195,13 +196,17 @@ function getMeasureText(value, ctx, fontset){
         }
 
         let measureText = ctx.measureText(value), cache = {};
-        if(measureText.actualBoundingBoxRight==null){
-            cache.width = measureText.width;
-        }
-        else{
-            //measureText.actualBoundingBoxLeft + 
-            cache.width = measureText.actualBoundingBoxRight;
-        }
+        var regu = "^[ ]+$";
+        var re = new RegExp(regu);
+        // if(measureText.actualBoundingBoxRight==null || re.test(value)){
+        //     cache.width = measureText.width;
+        // }
+        // else{
+        //     //measureText.actualBoundingBoxLeft + 
+        //     cache.width = measureText.actualBoundingBoxRight;
+        // }
+
+        cache.width = measureText.width;
 
         if(fontset!=null){
             ctx.font = fontset;
@@ -234,7 +239,7 @@ function getMeasureText(value, ctx, fontset){
         cache.actualBoundingBoxDescent *= Store.zoomRatio;
         cache.actualBoundingBoxAscent *= Store.zoomRatio;
         Store.measureTextCache[value + "_" + Store.zoomRatio +  "_" + ctx.font] = cache;
-
+        // console.log(measureText, value);
         return cache;
     }
 }
@@ -277,13 +282,13 @@ function getCellTextInfo(cell , ctx, option){
     }
 
     //水平对齐
-    let horizonAlign = menuButton.checkstatusByCell(cell, "ht");
+    let horizonAlign = checkstatusByCell(cell, "ht");
     //垂直对齐
-    let verticalAlign = menuButton.checkstatusByCell(cell, "vt");
+    let verticalAlign = checkstatusByCell(cell, "vt");
 
-    let tb = menuButton.checkstatusByCell(cell ,"tb");//wrap overflow
-    let tr = menuButton.checkstatusByCell(cell ,"tr");//rotate
-    let rt = menuButton.checkstatusByCell(cell ,"rt");//rotate angle
+    let tb = checkstatusByCell(cell ,"tb");//wrap overflow
+    let tr = checkstatusByCell(cell ,"tr");//rotate
+    let rt = checkstatusByCell(cell ,"rt");//rotate angle
 
     let isRotateUp = 1, isRotateDown=0;
 
@@ -325,25 +330,26 @@ function getCellTextInfo(cell , ctx, option){
     let textContent = {};
     textContent.values = [];
 
-    let fontset, cancelLine="0", underLine="0", isInline=false, value, inlineStringArr=[];
-    if(cell.ct!=null && cell.ct.t=="inlineStr" && cell.ct.s!=null && cell.ct.s.length>0){
+    let fontset, cancelLine="0", underLine="0", fontSize=11, isInline=false, value, inlineStringArr=[];
+    if(isInlineStringCell(cell)){
         let sharedStrings = cell.ct.s, similarIndex = 0;
         for(let i=0;i<sharedStrings.length;i++){
             let shareCell = sharedStrings[i];
             let scfontset = luckysheetfontformat(shareCell);
-            let fc = shareCell.fc, cl=shareCell.cl,un = shareCell.un, v = shareCell.v;
+            let fc = shareCell.fc, cl=shareCell.cl,un = shareCell.un, v = shareCell.v, fs=shareCell.fs;
             v = v.replace(/\r\n/g, "_x000D_").replace(/&#13;&#10;/g, "_x000D_").replace(/\r/g, "_x000D_").replace(/\n/g, "_x000D_");
             let splitArr = v.split("_x000D_"), preNewValue=null;
             for(let x=0;x<splitArr.length;x++){
                 let newValue = splitArr[x];
                 
-                if(newValue==""){
+                if(newValue=="" && x!=splitArr.length-1){
                     inlineStringArr.push({
                         fontset:scfontset,
                         fc:fc==null?"#000":fc,
                         cl:cl==null?0:cl,
                         un:un==null?0:un,
-                        wrap:true
+                        wrap:true,
+                        fs:fs==null?11:fs,
                     });
                     similarIndex++;
                 }
@@ -358,18 +364,20 @@ function getCellTextInfo(cell , ctx, option){
                             cl:cl==null?0:cl,
                             un:un==null?0:un,
                             v: nv,
-                            si:similarIndex
+                            si:similarIndex,
+                            fs:fs==null?11:fs,
                         });
                         
                     }
 
-                    if(x!=splitArr.length-1 && preNewValue!=""){
+                    if(x!=splitArr.length-1 && preNewValue!="" ){
                         inlineStringArr.push({
                             fontset:scfontset,
                             fc:fc==null?"#000":fc,
                             cl:cl==null?0:cl,
                             un:un==null?0:un,
-                            wrap:true
+                            wrap:true,
+                            fs:fs==null?11:fs,
                         });
                         similarIndex++;
                     } 
@@ -388,8 +396,9 @@ function getCellTextInfo(cell , ctx, option){
         fontset = luckysheetfontformat(cell);
         ctx.font = fontset;
 
-        cancelLine = menuButton.checkstatusByCell(cell ,"cl");//cancelLine
-        underLine = menuButton.checkstatusByCell(cell ,"un");//underLine
+        cancelLine = checkstatusByCell(cell ,"cl");//cancelLine
+        underLine = checkstatusByCell(cell ,"un");//underLine
+        fontSize = checkstatusByCell(cell ,"fs");
     
         if(cell instanceof Object){
             value = cell.m;
@@ -608,7 +617,8 @@ function getCellTextInfo(cell , ctx, option){
                     left:left,
                     top:top+word.height-space_height,
                     asc:word.height,
-                    desc:0
+                    desc:0,
+                    fs:fontSize
                 });
 
                 textContent.values.push(word);
@@ -661,6 +671,7 @@ function getCellTextInfo(cell , ctx, option){
                                     asc:sc.measureText.actualBoundingBoxAscent,
                                     desc:sc.measureText.actualBoundingBoxDescent,
                                     inline:true,
+                                    fs:sc.fs
                                 }
     
                                 // if(rt!=0){//rotate
@@ -690,6 +701,7 @@ function getCellTextInfo(cell , ctx, option){
                                 desc:measureText.actualBoundingBoxDescent,
                                 inline:true,
                                 wrap:true,
+                                fs:sc.fs
                             });
                         }
 
@@ -737,6 +749,7 @@ function getCellTextInfo(cell , ctx, option){
                                     asc:sc.measureText.actualBoundingBoxAscent,
                                     desc:sc.measureText.actualBoundingBoxDescent,
                                     inline:true,
+                                    fs:sc.fs
                                 });
                             }
     
@@ -760,6 +773,7 @@ function getCellTextInfo(cell , ctx, option){
                                     asc:sc.measureText.actualBoundingBoxAscent,
                                     desc:sc.measureText.actualBoundingBoxDescent,
                                     inline:true,
+                                    fs:sc.fs
                                 });
                             }
                             break;
@@ -789,6 +803,7 @@ function getCellTextInfo(cell , ctx, option){
                                     asc:sc.measureText.actualBoundingBoxAscent,
                                     desc:sc.measureText.actualBoundingBoxDescent,
                                     inline:true,
+                                    fs:sc.fs
                                 });
                             }
     
@@ -812,6 +827,7 @@ function getCellTextInfo(cell , ctx, option){
                                     asc:sc.measureText.actualBoundingBoxAscent,
                                     desc:sc.measureText.actualBoundingBoxDescent,
                                     inline:true,
+                                    fs:sc.fs
                                 });
                             }
     
@@ -856,7 +872,8 @@ function getCellTextInfo(cell , ctx, option){
                                 height:preTextHeight,
                                 width:preTextWidth,
                                 asc:measureText.actualBoundingBoxAscent,
-                                desc:measureText.actualBoundingBoxDescent
+                                desc:measureText.actualBoundingBoxDescent,
+                                fs:fontSize,
                             });
     
                             splitIndex +=1;
@@ -875,7 +892,8 @@ function getCellTextInfo(cell , ctx, option){
                                 height:textHeight,
                                 width:textWidth,
                                 asc:measureText.actualBoundingBoxAscent,
-                                desc:measureText.actualBoundingBoxDescent
+                                desc:measureText.actualBoundingBoxDescent,
+                                fs:fontSize,
                             });
                             break;
                         }
@@ -900,7 +918,8 @@ function getCellTextInfo(cell , ctx, option){
                                 top:0,
                                 splitIndex:splitIndex,
                                 asc:measureText.actualBoundingBoxAscent,
-                                desc:measureText.actualBoundingBoxDescent
+                                desc:measureText.actualBoundingBoxDescent,
+                                fs:fontSize,
                             });
     
                             splitIndex +=1;
@@ -918,7 +937,8 @@ function getCellTextInfo(cell , ctx, option){
                                 top:0,
                                 splitIndex:splitIndex,
                                 asc:measureText.actualBoundingBoxAscent,
-                                desc:measureText.actualBoundingBoxDescent
+                                desc:measureText.actualBoundingBoxDescent,
+                                fs:fontSize,
                             });
     
                             break;
@@ -962,7 +982,7 @@ function getCellTextInfo(cell , ctx, option){
                     maxWordCount++;
                 }
 
-                lineHeight = sHeight/1.5;
+                lineHeight = sHeight/2;
                 oneLinemaxWordCount = Math.max(oneLinemaxWordCount, maxWordCount);
                 if(rt!=0){//rotate
                     sHeight+=lineHeight;
@@ -1041,7 +1061,7 @@ function getCellTextInfo(cell , ctx, option){
                                 if(verticalAlign == "0"){//mid
                                     
                                     left = x + cellWidth/2 - (textW_all/2) + lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top
                                     left = x + cellWidth/2 - textW_all/2;
@@ -1049,13 +1069,13 @@ function getCellTextInfo(cell , ctx, option){
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x + cellWidth/2 - (textW_all/2)+lastLineSpaceHeight*Math.cos(rtPI);
-                                    top = y + cellHeight - rh/2 - textH_all/2 - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y + cellHeight - rh/2 - textH_all/2 - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
                             else if(horizonAlign == "1"){//left
                                 if(verticalAlign == "0"){//mid
                                     left = x - rh*Math.sin(rtPI)/2 + lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y + cellHeight/2 + rh*Math.cos(rtPI)/2 - lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y + cellHeight/2 + rh*Math.cos(rtPI)/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top
                                     left = x - rh*Math.sin(rtPI);
@@ -1063,13 +1083,13 @@ function getCellTextInfo(cell , ctx, option){
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x + lastLineSpaceHeight*Math.cos(rtPI);
-                                    top = y + cellHeight - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y + cellHeight - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
                             else if(horizonAlign == "2"){//right
                                 if(verticalAlign == "0"){//mid
                                     left = x + cellWidth - rw/2 - (textW_all_inner/2+(textH_all/2)/Math.tan(rtPI))+ lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top fixOneLineLeft
                                     left = x + cellWidth - textW_all + fixOneLineLeft;
@@ -1077,7 +1097,7 @@ function getCellTextInfo(cell , ctx, option){
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x + cellWidth - rw*Math.cos(rtPI) + lastLineSpaceHeight*Math.cos(rtPI);
-                                    top = y + cellHeight - rw*Math.sin(rtPI) - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y + cellHeight - rw*Math.sin(rtPI) - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
                             
@@ -1086,7 +1106,7 @@ function getCellTextInfo(cell , ctx, option){
                         wordGroup.left = left;
                         wordGroup.top = top;
 
-                        console.log(left, top,  cumWordHeight, size.height);
+                        // console.log(left, top,  cumWordHeight, size.height);
 
                         drawLineInfo(wordGroup, cancelLine, underLine,{
                             width:wordGroup.width, 
@@ -1094,7 +1114,8 @@ function getCellTextInfo(cell , ctx, option){
                             left:left-wordGroup.width,
                             top:top,
                             asc:size.asc,
-                            desc:size.desc
+                            desc:size.desc,
+                            fs:wordGroup.fs
                         });
 
                         textContent.values.push(wordGroup);
@@ -1131,21 +1152,21 @@ function getCellTextInfo(cell , ctx, option){
                                 if(verticalAlign == "0"){//mid
                                     
                                     left = x + cellWidth/2 - (textW_all/2) - lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y + cellHeight/2 - textH_all/2 + lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y + cellHeight/2 - textH_all/2 + lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top
                                     left = x + cellWidth/2 - textW_all/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y - (textH_all/2 - rh/2)+lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y - (textH_all/2 - rh/2)+lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x + cellWidth/2 - (textW_all/2)-lastLineSpaceHeight*Math.cos(rtPI);
-                                    top = y + cellHeight - rh/2 - textH_all/2 - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y + cellHeight - rh/2 - textH_all/2 - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
                             else if(horizonAlign == "1"){//left
                                 if(verticalAlign == "0"){//mid
                                     left = x - rh*Math.sin(rtPI)/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y - textH_all + cellHeight/2 - rh*Math.cos(rtPI)/2 - lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y - textH_all + cellHeight/2 - rh*Math.cos(rtPI)/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top
                                     left = x;
@@ -1153,13 +1174,13 @@ function getCellTextInfo(cell , ctx, option){
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x - rh*Math.sin(rtPI) - lastLineSpaceHeight*Math.cos(rtPI);
-                                    top = y - textH_all + cellHeight - rh*Math.cos(rtPI) - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y - textH_all + cellHeight - rh*Math.cos(rtPI) - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
                             else if(horizonAlign == "2"){//right
                                 if(verticalAlign == "0"){//mid
                                     left = x + cellWidth - rw/2 - textW_all/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
-                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.sin(rtPI)/2;
+                                    top = y + cellHeight/2 - textH_all/2 - lastLineSpaceHeight*Math.cos(rtPI)/2;
                                 }
                                 else if(verticalAlign == "1"){//top fixOneLineLeft
                                     left = x + cellWidth - rw*Math.cos(rtPI);
@@ -1167,7 +1188,7 @@ function getCellTextInfo(cell , ctx, option){
                                 }
                                 else if(verticalAlign == "2"){//bottom
                                     left = x + cellWidth - textW_all - lastLineSpaceHeight*Math.cos(rtPI) + fixOneLineLeft;
-                                    top = y + cellHeight - lastLineSpaceHeight*Math.sin(rtPI);
+                                    top = y + cellHeight - lastLineSpaceHeight*Math.cos(rtPI);
                                 }
                             }
 
@@ -1177,7 +1198,8 @@ function getCellTextInfo(cell , ctx, option){
                                 left:left,
                                 top:top,
                                 asc:size.asc,
-                                desc:size.desc
+                                desc:size.desc,
+                                fs:wordGroup.fs
                             });
 
                         }
@@ -1207,7 +1229,8 @@ function getCellTextInfo(cell , ctx, option){
                                 left:left,
                                 top:top,
                                 asc:size.asc,
-                                desc:size.desc
+                                desc:size.desc,
+                                fs:wordGroup.fs
                             });
                         }
                     
@@ -1301,16 +1324,17 @@ function getCellTextInfo(cell , ctx, option){
             textContent.rotate = rt;
 
             rt = Math.abs(rt);
+            let rtPI = rt*Math.PI/180;
 
-            let textWidthAll = textWidth * Math.cos(rt*Math.PI/180) + textHeight * Math.sin(rt*Math.PI/180);//consider text box wdith and line height
+            let textWidthAll = textWidth * Math.cos(rtPI) + textHeight * Math.sin(rtPI);//consider text box wdith and line height
 
-            let textHeightAll = textWidth * Math.sin(rt*Math.PI/180) + textHeight * Math.cos(rt*Math.PI/180);//consider text box wdith and line height
+            let textHeightAll = textWidth * Math.sin(rtPI) + textHeight * Math.cos(rtPI);//consider text box wdith and line height
 
             if(rt!=0){
                 textContent.textHeightAll = textHeightAll;
             }
             else{
-                textContent.textHeightAll = textHeightAll+textHeight/1.5-measureText.actualBoundingBoxDescent-space_height;
+                textContent.textHeightAll = textHeightAll+textHeight/2-measureText.actualBoundingBoxDescent-space_height;
             }
             textContent.textWidthAll = textWidthAll;
             
@@ -1322,20 +1346,20 @@ function getCellTextInfo(cell , ctx, option){
 
             let width = textWidthAll, height = textHeightAll;
 
-            let left = space_width + textHeight * Math.sin(rt*Math.PI/180)*isRotateUp; //默认为1，左对齐
+            let left = space_width + textHeight * Math.sin(rtPI)*isRotateUp; //默认为1，左对齐
             if(horizonAlign == "0"){ //居中对齐
-                left = cellWidth / 2  - (width / 2) + textHeight * Math.sin(rt*Math.PI/180)*isRotateUp;
+                left = cellWidth / 2  - (width / 2) + textHeight * Math.sin(rtPI)*isRotateUp;
             }
             else if(horizonAlign == "2"){ //右对齐
-                left = (cellWidth - space_width)  - width + textHeight * Math.sin(rt*Math.PI/180)*isRotateUp;
+                left = (cellWidth - space_width)  - width + textHeight * Math.sin(rtPI)*isRotateUp;
             }
             
-            let top = (cellHeight - space_height)  - height + measureText.actualBoundingBoxAscent + textWidth * Math.sin(rt*Math.PI/180)*isRotateUp; //默认为2，下对齐
+            let top = (cellHeight - space_height)  - height + measureText.actualBoundingBoxAscent * Math.cos(rtPI) + textWidth * Math.sin(rtPI)*isRotateUp; //默认为2，下对齐
             if(verticalAlign == "0"){ //居中对齐 
-                top = cellHeight / 2  - (height / 2) + measureText.actualBoundingBoxAscent + textWidth * Math.sin(rt*Math.PI/180)*isRotateUp;
+                top = cellHeight / 2  - (height / 2) + measureText.actualBoundingBoxAscent* Math.cos(rtPI) + textWidth * Math.sin(rtPI)*isRotateUp;
             }
             else if(verticalAlign == "1"){ //上对齐
-                top = space_height + measureText.actualBoundingBoxAscent + textWidth * Math.sin(rt*Math.PI/180)*isRotateUp;
+                top = space_height + measureText.actualBoundingBoxAscent* Math.cos(rtPI) + textWidth * Math.sin(rtPI)*isRotateUp;
             }
 
             textContent.type = "plain";
@@ -1355,7 +1379,8 @@ function getCellTextInfo(cell , ctx, option){
                 left:left,
                 top:top,
                 asc:measureText.actualBoundingBoxAscent,
-                desc:measureText.actualBoundingBoxDescent
+                desc:measureText.actualBoundingBoxDescent,
+                fs:fontSize,
             });
 
             textContent.values.push(wordGroup);
@@ -1375,7 +1400,7 @@ function getCellTextInfo(cell , ctx, option){
 
 
 function drawLineInfo(wordGroup, cancelLine,underLine,option){
-    let left = option.left, top = option.top, width=option.width, height = option.height, asc = option.asc,desc = option.desc;
+    let left = option.left, top = option.top, width=option.width, height = option.height, asc = option.asc,desc = option.desc,fs = option.fs;
 
     if(wordGroup.wrap===true){
         return;
@@ -1394,6 +1419,8 @@ function drawLineInfo(wordGroup, cancelLine,underLine,option){
         wordGroup.cancelLine.endX = left + width;
         wordGroup.cancelLine.endY = top-asc/2+1;
 
+        wordGroup.cancelLine.fs = fs;
+
     }
 
     if(underLine!="0"){
@@ -1406,6 +1433,8 @@ function drawLineInfo(wordGroup, cancelLine,underLine,option){
             item.endX = left + width;
             item.endY = top;
 
+            item.fs = fs;
+
             wordGroup.underLine.push(item);
          }
 
@@ -1416,6 +1445,8 @@ function drawLineInfo(wordGroup, cancelLine,underLine,option){
 
             item.endX = left + width;
             item.endY = top+desc;
+
+            item.fs = fs;
 
             wordGroup.underLine.push(item);
          }
@@ -1428,6 +1459,8 @@ function drawLineInfo(wordGroup, cancelLine,underLine,option){
             item.endX = left + width;
             item.endY = top+desc;
 
+            item.fs = fs;
+
             wordGroup.underLine.push(item);
          }
 
@@ -1438,6 +1471,8 @@ function drawLineInfo(wordGroup, cancelLine,underLine,option){
 
             item.endX = left + width;
             item.endY = top+desc+2;
+
+            item.fs = fs;
 
             wordGroup.underLine.push(item);
          }

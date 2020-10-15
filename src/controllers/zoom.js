@@ -1,6 +1,7 @@
 import Store from '../store';
 import locale from '../locale/locale';
 import { replaceHtml } from '../utils/util';
+import sheetmanage from './sheetmanage';
 import {changeSheetContainerSize} from './resize';
 import { jfrefreshgrid_rhcw } from '../global/refresh';
 import server from './server';
@@ -26,27 +27,43 @@ export function zoomChange(ratio){
         }
     
         Store.zoomRatio = ratio;
+
+        let currentSheet = sheetmanage.getSheetByIndex();
+        if(currentSheet.config==null){
+            currentSheet.config = {};
+        }
+    
+        if(currentSheet.config.sheetViewZoom==null){
+            currentSheet.config.sheetViewZoom = {};
+        }
+
+        let type = currentSheet.config.curentsheetView;
+        if(type==null){
+            type = "viewNormal";
+        }
+        currentSheet.config.sheetViewZoom[type+"ZoomScale"] = ratio;
     
         server.saveParam("all", Store.currentSheetIndex, Store.zoomRatio, { "k": "zoomRatio" });
-        
+        server.saveParam("cg", Store.currentSheetIndex, currentSheet.config["sheetViewZoom"], { "k": "sheetViewZoom" });
+
         zoomRefreshView();
     }, 100);
     
 }
 
 export function zoomRefreshView(){
-    let $scrollLeft = $("#luckysheet-scrollbar-x"), $scrollTop = $("#luckysheet-scrollbar-y");
-    let sl = $scrollLeft.scrollLeft(), st = $scrollTop.scrollTop();
+    // let $scrollLeft = $("#luckysheet-scrollbar-x"), $scrollTop = $("#luckysheet-scrollbar-y");
+    // let sl = $scrollLeft.scrollLeft(), st = $scrollTop.scrollTop();
 
-    let wp = $scrollLeft.find("div").width(), hp = $scrollTop.find("div").height();
+    // let wp = $scrollLeft.find("div").width(), hp = $scrollTop.find("div").height();
 
     jfrefreshgrid_rhcw(Store.flowdata.length, Store.flowdata[0].length);
     changeSheetContainerSize();
 
-    let wc = $scrollLeft.find("div").width(), hc = $scrollTop.find("div").height();
+    // let wc = $scrollLeft.find("div").width(), hc = $scrollTop.find("div").height();
 
-    $scrollLeft.scrollLeft(sl+wc-wp);
-    $scrollTop.scrollTop(st+hc-hp);
+    // $scrollLeft.scrollLeft(sl+wc-wp);
+    // $scrollTop.scrollTop(st+hc-hp);
 }
 
 

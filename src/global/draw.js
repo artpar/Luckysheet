@@ -14,6 +14,7 @@ import { getcellvalue,getRealCellValue } from './getdata';
 import { getBorderInfoCompute } from './border';
 import { getSheetIndex } from '../methods/get';
 import { getObjType, chatatABC, luckysheetfontformat } from '../utils/util';
+import { isInlineStringCell } from '../controllers/inlineString';
 import Store from '../store';
 import locale from '../locale/locale';
 
@@ -1320,8 +1321,10 @@ let cellRender = function(r, c, start_r, start_c, end_r, end_c, value, luckyshee
         luckysheetTableContent.rect(pos_x, pos_y, cellWidth, cellHeight);
         luckysheetTableContent.clip();
         luckysheetTableContent.scale(Store.zoomRatio,Store.zoomRatio);
-
-        textMetrics += 14;
+        
+        let measureText = getMeasureText(value, luckysheetTableContent);
+        let textMetrics = measureText.width + 14;
+        let oneLineTextHeight = measureText.actualBoundingBoxDescent + measureText.actualBoundingBoxAscent;
 
         let horizonAlignPos = (pos_x + space_width) ; //默认为1，左对齐
         if(horizonAlign == "0"){ //居中对齐
@@ -1888,6 +1891,9 @@ function getCellOverflowMap(canvas, col_st, col_ed, row_st, row_end){
     let data = Store.flowdata;
 
     for(let r = row_st; r <= row_end; r++){
+        if(data[r]==null){
+            continue;
+        }
         for(let c = 0; c < data[r].length; c++){
             let cell = data[r][c];
 
@@ -1895,7 +1901,7 @@ function getCellOverflowMap(canvas, col_st, col_ed, row_st, row_end){
                 continue
             }
 
-            if(cell != null && (!isRealNull(cell.v) || (cell.ct!=null && cell.ct.t=="inlineStr" && cell.ct.s!=null && cell.ct.s.length>0) ) && cell.mc == null && cell.tb == '1'){
+            if(cell != null && (!isRealNull(cell.v) || isInlineStringCell(cell) ) && cell.mc == null && cell.tb == '1'){
                 // let fontset = luckysheetfontformat(cell);
                 // canvas.font = fontset;
 
@@ -2137,9 +2143,9 @@ function cellTextRender(textInfo, ctx, option){
 
     if(textInfo.rotate!=0 && textInfo.type!="verticalWrap"){
         ctx.save();
-        ctx.translate(pos_x+textInfo.textLeftAll, pos_y+textInfo.textTopAll);
+        ctx.translate((pos_x+textInfo.textLeftAll)/Store.zoomRatio, (pos_y+textInfo.textTopAll)/Store.zoomRatio);
         ctx.rotate(-textInfo.rotate * Math.PI / 180);
-        ctx.translate(-(textInfo.textLeftAll+pos_x), -(pos_y+textInfo.textTopAll));
+        ctx.translate(-(textInfo.textLeftAll+pos_x)/Store.zoomRatio, -(pos_y+textInfo.textTopAll)/Store.zoomRatio);
     }
 
     // ctx.fillStyle = "rgb(0,0,0)";
@@ -2166,7 +2172,7 @@ function cellTextRender(textInfo, ctx, option){
                 Math.floor((pos_x +c.endX)/Store.zoomRatio)+0.5 ,
                 Math.floor((pos_y+c.endY)/Store.zoomRatio)+0.5 ,
             );
-            ctx.lineWidth = 1;
+            ctx.lineWidth = Math.floor(c.fs/9);
             ctx.strokeStyle = ctx.fillStyle;
             ctx.stroke();
             ctx.closePath();
@@ -2185,7 +2191,7 @@ function cellTextRender(textInfo, ctx, option){
                     Math.floor((pos_x +item.endX)/Store.zoomRatio)+0.5,
                     Math.floor((pos_y+ item.endY)/Store.zoomRatio)+0.5
                 );
-                ctx.lineWidth = 1;
+                ctx.lineWidth = Math.floor(item.fs/9);
                 ctx.strokeStyle = ctx.fillStyle;
                 ctx.stroke();
                 ctx.closePath();

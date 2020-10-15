@@ -7,12 +7,22 @@ import conditionformat from '../controllers/conditionformat';
 import luckysheetFreezen from '../controllers/freezen';
 import { selectHightlightShow } from '../controllers/select';
 import { luckysheet_searcharray } from '../controllers/sheetSearch';
+import {checkProtectionAuthorityNormal,checkProtectionNotEnable} from '../controllers/protection';
 import { getSheetIndex } from '../methods/get';
 import Store from '../store';
 
 //增加行列
-function luckysheetextendtable(type, index, value, direction, order) {
-    let curOrder = order || getSheetIndex(Store.currentSheetIndex);
+function luckysheetextendtable(type, index, value, direction, sheetIndex) {
+    sheetIndex = sheetIndex || Store.currentSheetIndex;
+
+    if(type=='row' && !checkProtectionAuthorityNormal(sheetIndex, "insertRows")){
+        return;
+    }
+    else if(type=='column' && !checkProtectionAuthorityNormal(sheetIndex, "insertColumns")){
+        return;
+    }
+
+    let curOrder = getSheetIndex(sheetIndex);
     let file = Store.luckysheetfile[curOrder];
     let d = $.extend(true, [], file.data);
 
@@ -255,7 +265,9 @@ function luckysheetextendtable(type, index, value, direction, order) {
     }
 
     if(newFilterObj != null && newFilterObj.filter != null){
-        cfg["rowhidden"] = {};
+        if(cfg["rowhidden"] == null){
+            cfg["rowhidden"] = {};
+        }
 
         for(let k in newFilterObj.filter){
             let f_rowhidden = newFilterObj.filter[k].rowhidden;
@@ -264,9 +276,6 @@ function luckysheetextendtable(type, index, value, direction, order) {
                 cfg["rowhidden"][n] = 0;
             }
         }
-    }
-    else{
-        delete cfg["rowhidden"];
     }
 
     //条件格式配置变动
@@ -531,6 +540,32 @@ function luckysheetextendtable(type, index, value, direction, order) {
             cfg["rowlen"] = rowlen_new;
         }
 
+        //隐藏行配置变动
+        if(cfg["rowhidden"] != null){
+            let rowhidden_new = {};
+
+            for(let r in cfg["rowhidden"]){
+                r = parseFloat(r);
+
+                if(r < index){
+                    rowhidden_new[r] = cfg["rowhidden"][r];
+                }
+                else if(r == index){
+                    if(direction == "lefttop"){
+                        rowhidden_new[(r + value)] = cfg["rowhidden"][r];
+                    }
+                    else if(direction == "rightbottom"){
+                        rowhidden_new[r] = cfg["rowhidden"][r];
+                    }
+                }
+                else{
+                    rowhidden_new[(r + value)] = cfg["rowhidden"][r];
+                }
+            }
+
+            cfg["rowhidden"] = rowhidden_new;
+        }
+
         //空行模板
         let row = [];
         for(let c = 0; c < d[0].length; c++){
@@ -655,6 +690,32 @@ function luckysheetextendtable(type, index, value, direction, order) {
             }
 
             cfg["columnlen"] = columnlen_new;
+        }
+
+        //隐藏列配置变动
+        if(cfg["colhidden"] != null){
+            let colhidden_new = {};
+
+            for(let c in cfg["colhidden"]){
+                c = parseFloat(c);
+                
+                if(c < index){
+                    colhidden_new[c] = cfg["colhidden"][c];
+                }
+                else if(c == index){
+                    if(direction == "lefttop"){
+                        colhidden_new[(c + value)] = cfg["colhidden"][c];
+                    }
+                    else if(direction == "rightbottom"){
+                        colhidden_new[c] = cfg["colhidden"][c];
+                    }
+                }
+                else{
+                    colhidden_new[(c + value)] = cfg["colhidden"][c];
+                }
+            }
+
+            cfg["colhidden"] = colhidden_new;
         }
 
         //空列模板
@@ -868,8 +929,19 @@ function luckysheetextendData(rowlen, newData) {
 }
 
 //删除行列
-function luckysheetdeletetable(type, st, ed, order) {
-    let curOrder = order || getSheetIndex(Store.currentSheetIndex);
+function luckysheetdeletetable(type, st, ed, sheetIndex) {
+
+    sheetIndex = sheetIndex || Store.currentSheetIndex;
+    
+    if(type=='row' && !checkProtectionAuthorityNormal(sheetIndex, "deleteRows")){
+        return;
+    }
+    else if(type=='column' && !checkProtectionAuthorityNormal(sheetIndex, "deleteColumns")){
+        return;
+    }
+
+    let curOrder = getSheetIndex(sheetIndex);
+
     let file = Store.luckysheetfile[curOrder];
     let d = $.extend(true, [], file.data);
 
@@ -1093,7 +1165,9 @@ function luckysheetdeletetable(type, st, ed, order) {
     }
 
     if(newFilterObj != null && newFilterObj.filter != null){
-        cfg["rowhidden"] = {};
+        if(cfg["rowhidden"] == null){
+            cfg["rowhidden"] = {};
+        }
 
         for(let k in newFilterObj.filter){
             let f_rowhidden = newFilterObj.filter[k].rowhidden;
@@ -1102,9 +1176,6 @@ function luckysheetdeletetable(type, st, ed, order) {
                 cfg["rowhidden"][n] = 0;
             }
         }
-    }
-    else{
-        delete cfg["rowhidden"];
     }
 
     //条件格式配置变动
@@ -1385,6 +1456,23 @@ function luckysheetdeletetable(type, st, ed, order) {
 
         cfg["rowlen"] = rowlen_new;
 
+        //隐藏行配置变动
+        if(cfg["rowhidden"] == null){
+            cfg["rowhidden"] = {};
+        }
+
+        let rowhidden_new = {};
+        for(let r in cfg["rowhidden"]){
+            if(r < st){
+                rowhidden_new[r] = cfg["rowhidden"][r];
+            }
+            else if(r > ed){
+                rowhidden_new[r - slen] = cfg["rowhidden"][r];
+            }
+        }
+
+        cfg["rowhidden"] = rowhidden_new;
+
         //边框配置变动
         if(cfg["borderInfo"] && cfg["borderInfo"].length > 0){
             let borderInfo = []; 
@@ -1477,6 +1565,23 @@ function luckysheetdeletetable(type, st, ed, order) {
         }
 
         cfg["columnlen"] = columnlen_new;
+
+        //隐藏列配置变动
+        if(cfg["colhidden"] == null){
+            cfg["colhidden"] = {};
+        }
+
+        let colhidden_new = {};
+        for(let c in cfg["colhidden"]){
+            if(c < st){
+                colhidden_new[c] = cfg["colhidden"][c];
+            }
+            else if(c > ed){
+                colhidden_new[c - slen] = cfg["colhidden"][c];
+            }
+        }
+
+        cfg["colhidden"] = colhidden_new;
 
         //边框配置变动
         if(cfg["borderInfo"] && cfg["borderInfo"].length > 0){
@@ -1581,8 +1686,13 @@ function luckysheetdeletetable(type, st, ed, order) {
 }
 
 //删除单元格
-function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
-    let curOrder = order || getSheetIndex(Store.currentSheetIndex);
+function luckysheetDeleteCell(type, str, edr, stc, edc, sheetIndex) {
+    sheetIndex = sheetIndex || Store.currentSheetIndex;
+    if(!checkProtectionNotEnable(sheetIndex)){
+        return;
+    }
+
+    let curOrder = getSheetIndex(sheetIndex);
     let file = Store.luckysheetfile[curOrder];
 
     let d = $.extend(true, [], file.data);
@@ -1612,6 +1722,13 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
             else if(str <= r && edr >= r + rs - 1 && edc < c){
                 merge_new[r + "_" + (c - clen)] = { "r": r, "c": c - clen, "rs": rs, "cs": cs };
             }
+            else{
+                for(let r_i = r; r_i <= r + rs - 1; r_i++){
+                    for(let c_i = c; c_i <= c + cs - 1; c_i++){
+                        delete d[r_i][c_i].mc;
+                    }
+                }
+            }
         }
         else if(type == "moveUp"){
             if(stc > c + cs - 1 || edc < c || str > r + rs - 1){
@@ -1619,6 +1736,13 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
             }
             else if(stc <= c && edc >= c + cs - 1 && edr < r){
                 merge_new[(r - rlen) + "_" + c] = { "r": r - rlen, "c": c, "rs": rs, "cs": cs };
+            }
+            else{
+                for(let r_i = r; r_i <= r + rs - 1; r_i++){
+                    for(let c_i = c; c_i <= c + cs - 1; c_i++){
+                        delete d[r_i][c_i].mc;
+                    }
+                }
             }
         }
     }
@@ -1878,7 +2002,9 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
     }
 
     if(newFilterObj != null && newFilterObj.filter != null){
-        cfg["rowhidden"] = {};
+        if(cfg["rowhidden"] == null){
+            cfg["rowhidden"] = {};
+        }
 
         for(let k in newFilterObj.filter){
             let f_rowhidden = newFilterObj.filter[k].rowhidden;
@@ -1887,9 +2013,6 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
                 cfg["rowhidden"][n] = 0;
             }
         }
-    }
-    else{
-        delete cfg["rowhidden"];
     }
 
     //条件格式配置变动
@@ -1905,19 +2028,9 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
                     CFr2 = cf_range[j].row[1],
                     CFc1 = cf_range[j].column[0],
                     CFc2 = cf_range[j].column[1];
-
-                if(!(str > CFr2 || edr < CFr1) || !(stc > CFc2 || edc < CFc1)){
-                    let range = conditionformat.CFSplitRange(
-                        cf_range[j], 
-                        { "row": [str, edr], "column": [stc, edc] }, 
-                        { "row": [str, edr], "column": [stc, edc] }, 
-                        "restPart"
-                    );
-
-                    cf_new_range.concat(range);
-                }
-                else{
-                    cf_new_range.push(cf_range[j]);
+                
+                if(!(str <= CFr1 && edr >= CFr2 && stc <= CFc1 && edc >= CFc2)){
+                    cf_new_range = getMoveRange(type, str, edr, stc, edc, CFr1, CFr2, CFc1, CFc2, rlen, clen);
                 }
             }
 
@@ -1978,18 +2091,8 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
                         bd_c1 = borderRange[j].column[0],
                         bd_c2 = borderRange[j].column[1];
 
-                    if(!(str > bd_r2 || edr < bd_r1) || !(stc > bd_c2 || edc < bd_c1)){
-                        let range = conditionformat.CFSplitRange(
-                            borderRange[j], 
-                            { "row": [str, edr], "column": [stc, edc] }, 
-                            { "row": [str, edr], "column": [stc, edc] }, 
-                            "restPart"
-                        );
-    
-                        emptyRange.concat(range);
-                    }
-                    else{
-                        emptyRange.push(borderRange[j]);
+                    if(!(str <= bd_r1 && edr >= bd_r2 && stc <= bd_c1 && edc >= bd_c2)){
+                        emptyRange = getMoveRange(type, str, edr, stc, edc, bd_r1, bd_r2, bd_c1, bd_c2, rlen, clen);
                     }
                 }
 
@@ -2093,6 +2196,315 @@ function luckysheetDeleteCell(type, str, edr, stc, edc, order) {
         file.luckysheet_conditionformat_save = newCFarr;
         file.dataVerification = newDataVerification;
     }
+}
+
+function getMoveRange(type, str, edr, stc, edc, r1, r2, c1, c2, rlen, clen) {
+    let newRange = [];
+
+    if(type == "moveLeft"){
+        if(str > r2 || edr < r1 || stc > c2){
+            newRange.push({
+                "row": [r1, r2],
+                "column": [c1, c2]
+            });
+        }
+        else if(edc < c1){
+            if(str <= r1 && edr >= r2){
+                newRange.push({
+                    "row": [r1, r2],
+                    "column": [c1 - clen, c2 - clen]
+                });
+            }
+            else if(str > r1 && edr < r2){
+                let range= [
+                    { "row": [r1, str - 1], "column": [c1, c2] },
+                    { "row": [edr + 1, r2], "column": [c1, c2] },
+                    { "row": [str, edr], "column": [c1 - clen, c2 - clen] }
+                ];
+                newRange = newRange.concat(range);
+            }
+            else if(str > r1){
+                let range= [
+                    { "row": [r1, str - 1], "column": [c1, c2] },
+                    { "row": [str, r2], "column": [c1 - clen, c2 - clen] },
+                ];
+                newRange = newRange.concat(range);
+            }
+            else if(edr < r2){
+                let range= [
+                    { "row": [r1, edr], "column": [c1 - clen, c2 - clen] },
+                    { "row": [edr + 1, r2], "column": [c1, c2] },
+                ];
+                newRange = newRange.concat(range);
+            }
+        }
+        else if(edc >= c1){
+            if(stc <= c1 && edc >= c2){
+                if(str > r1 && edr < r2){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(str > r1){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edr < r2){
+                    let range= [
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(stc > c1 && edc < c2){
+                if(str <= r1 && edr >= r2){
+                    newRange.push({
+                        "row": [r1, r2],
+                        "column": [c1, c2 - clen]
+                    });
+                }
+                else if(str > r1 && edr < r2){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                        { "row": [str, edr], "column": [c1, c2 - clen] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(str > r1){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [str, r2], "column": [c1, c2 - clen] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edr < r2){
+                    let range= [
+                        { "row": [r1, edr], "column": [c1, c2 - clen] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(stc > c1){
+                if(str <= r1 && edr >= r2){
+                    newRange.push({
+                        "row": [r1, r2],
+                        "column": [c1, stc - 1]
+                    });
+                }
+                else if(str > r1 && edr < r2){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                        { "row": [str, edr], "column": [c1, stc - 1] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(str > r1){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [str, r2], "column": [c1, stc - 1] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edr < r2){
+                    let range= [
+                        { "row": [r1, edr], "column": [c1, stc - 1] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(edc < c2){
+                if(str <= r1 && edr >= r2){
+                    newRange.push({
+                        "row": [r1, r2],
+                        "column": [c1 - clen, c2 - clen]
+                    });
+                }
+                else if(str > r1 && edr < r2){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                        { "row": [str, edr], "column": [c1 - clen, c2 - clen] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(str > r1){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, c2] },
+                        { "row": [str, r2], "column": [c1 - clen, c2 - clen] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edr < r2){
+                    let range= [
+                        { "row": [r1, edr], "column": [c1 - clen, c2 - clen] },
+                        { "row": [edr + 1, r2], "column": [c1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+        }
+    }
+    else if(type == "moveUp"){
+        if(stc > c2 || edc < c1 || str > r2){
+            newRange.push({
+                "row": [r1, r2],
+                "column": [c1, c2]
+            });
+        }
+        else if(edr < r1){
+            if(stc <= c1 && edc >= c2){
+                newRange.push({
+                    "row": [r1 - rlen, r2 - rlen],
+                    "column": [c1, c2]
+                });
+            }
+            else if(stc > c1 && edc < c2){
+                let range= [
+                    { "row": [r1, r2], "column": [c1, stc - 1] },
+                    { "row": [r1, r2], "column": [edc + 1, c2] },
+                    { "row": [r1 - rlen, r2 - rlen], "column": [stc, edc] }
+                ];
+                newRange = newRange.concat(range);
+            }
+            else if(stc > c1){
+                let range= [
+                    { "row": [r1, r2], "column": [c1, stc - 1] },
+                    { "row": [r1 - rlen, r2 - rlen], "column": [stc, c2] },
+                ];
+                newRange = newRange.concat(range);
+            }
+            else if(edc < c2){
+                let range= [
+                    { "row": [r1 - rlen, r2 - rlen], "column": [c1, edc] },
+                    { "row": [r1, r2], "column": [edc + 1, c2] },
+                ];
+                newRange = newRange.concat(range);
+            }
+        }
+        else if(edr >= r1){
+            if(str <= r1 && edr >= r2){
+                if(stc > c1 && edc < c2){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(stc > c1){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edc < c2){
+                    let range= [
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(str > r1 && edr < r2){
+                if(stc <= c1 && edc >= c2){
+                    newRange.push({
+                        "row": [r1, r2 - rlen],
+                        "column": [c1, c2]
+                    });
+                }
+                else if(stc > c1 && edc < c2){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                        { "row": [r1, r2 - rlen], "column": [stc, edc] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(stc > c1){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, r2 - rlen], "column": [stc, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edc < c2){
+                    let range= [
+                        { "row": [r1, r2 - rlen], "column": [c1, edc] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(str > r1){
+                if(stc <= c1 && edc >= c2){
+                    newRange.push({
+                        "row": [r1, str - 1],
+                        "column": [c1, c2]
+                    });
+                }
+                else if(stc > c1 && edc < c2){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                        { "row": [r1, str - 1], "column": [stc, edc] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(stc > c1){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, str - 1], "column": [stc, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edc < c2){
+                    let range= [
+                        { "row": [r1, str - 1], "column": [c1, edc] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+            else if(edr < r2){
+                if(stc <= c1 && edc >= c2){
+                    newRange.push({
+                        "row": [r1 - rlen, r2 - rlen],
+                        "column": [c1, c2]
+                    });
+                }
+                else if(stc > c1 && edc < c2){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                        { "row": [r1 - rlen, r2 - rlen], "column": [stc, edc] }
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(stc > c1){
+                    let range= [
+                        { "row": [r1, r2], "column": [c1, stc - 1] },
+                        { "row": [r1 - rlen, r2 - rlen], "column": [stc, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+                else if(edc < c2){
+                    let range= [
+                        { "row": [r1 - rlen, r2 - rlen], "column": [c1, edc] },
+                        { "row": [r1, r2], "column": [edc + 1, c2] },
+                    ];
+                    newRange = newRange.concat(range);
+                }
+            }
+        }
+    }
+
+    return newRange;
 }
 
 export {

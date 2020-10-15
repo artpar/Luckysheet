@@ -34,12 +34,17 @@ import editor from '../global/editor';
 import locale from '../locale/locale';
 import {getMeasureText,getCellTextInfo} from '../global/getRowlen';
 import { luckysheet_searcharray } from '../controllers/sheetSearch';
+import {isInlineStringCell} from './inlineString';
+import {checkProtectionLockedRangeList, checkProtectionAllSelected,checkProtectionAuthorityNormal  } from './protection';
 import Store from '../store';
 
 export function rowColumnOperationInitial(){
 
     //表格行标题 mouse事件
     $("#luckysheet-rows-h").mousedown(function (event) {
+        if(!checkProtectionAllSelected(Store.currentSheetIndex)){
+            return;
+        }
         //有批注在编辑时
         luckysheetPostil.removeActivePs();
 
@@ -426,6 +431,9 @@ export function rowColumnOperationInitial(){
     
     //表格列标题 mouse事件
     $("#luckysheet-cols-h-c").mousedown(function (event) {
+        if(!checkProtectionAllSelected(Store.currentSheetIndex)){
+            return;
+        }
         //有批注在编辑时
         luckysheetPostil.removeActivePs();
 
@@ -928,7 +936,14 @@ export function rowColumnOperationInitial(){
     });
 
     //向左增加列，向上增加行
-    $("#luckysheet-add-lefttop, #luckysheet-add-lefttop_t").click(function (event) {
+    // $("#luckysheet-add-lefttop, #luckysheet-add-lefttop_t").click(function (event) {
+    $("#luckysheet-top-left-add-selected").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
         
@@ -949,7 +964,7 @@ export function rowColumnOperationInitial(){
 
         
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -976,7 +991,16 @@ export function rowColumnOperationInitial(){
         let st_index = Store.luckysheet_select_save[0][Store.luckysheetRightHeadClickIs][0];
         luckysheetextendtable(Store.luckysheetRightHeadClickIs, st_index, value, "lefttop");
     });
-    $("#luckysheet-addTopRows").click(function (event) {
+
+    // Add the row up, and click the text area to trigger the confirmation instead of clicking the confirmation button to enhance the experience
+    // $("#luckysheet-addTopRows").click(function (event) {
+    $("#luckysheetColsRowsHandleAdd_sub .luckysheet-cols-menuitem:first-child").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -995,7 +1019,7 @@ export function rowColumnOperationInitial(){
             return;
         }
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -1021,8 +1045,24 @@ export function rowColumnOperationInitial(){
 
         let st_index = Store.luckysheet_select_save[0].row[0];
         luckysheetextendtable('row', st_index, value, "lefttop");
+
+        $("#luckysheetColsRowsHandleAdd_sub").hide();
     })
-    $("#luckysheet-addLeftCols").click(function (event) {
+
+    // // input输入时阻止冒泡，禁止父级元素的确认事件触发
+    // $("input.luckysheet-mousedown-cancel").click(function(event) {
+    //     event.stopPropagation;
+    // })
+
+
+    // $("#luckysheet-addLeftCols").click(function (event) {
+    $("#luckysheetColsRowsHandleAdd_sub .luckysheet-cols-menuitem:nth-child(3)").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1041,7 +1081,7 @@ export function rowColumnOperationInitial(){
             return;
         }
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -1067,10 +1107,20 @@ export function rowColumnOperationInitial(){
 
         let st_index = Store.luckysheet_select_save[0].column[0];
         luckysheetextendtable('column', st_index, value, "lefttop");
+
+        $("#luckysheetColsRowsHandleAdd_sub").hide();
+        
     })
 
     //向右增加列，向下增加行
-    $("#luckysheet-add-rightbottom, #luckysheet-add-rightbottom_t").click(function (event) {
+    // $("#luckysheet-add-rightbottom, #luckysheet-add-rightbottom_t").click(function (event) {
+    $("#luckysheet-bottom-right-add-selected").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1089,7 +1139,7 @@ export function rowColumnOperationInitial(){
             return;
         }
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -1117,7 +1167,15 @@ export function rowColumnOperationInitial(){
         let st_index = Store.luckysheet_select_save[0][Store.luckysheetRightHeadClickIs][1];
         luckysheetextendtable(Store.luckysheetRightHeadClickIs, st_index, value, "rightbottom");
     });
-    $("#luckysheet-addBottomRows").click(function (event) {
+
+    // $("#luckysheet-addBottomRows").click(function (event) {
+    $("#luckysheetColsRowsHandleAdd_sub .luckysheet-cols-menuitem:nth-child(2)").click(function (event) {
+
+         // Click input element, don't comfirm 
+         if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1136,7 +1194,7 @@ export function rowColumnOperationInitial(){
             return;
         }
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -1163,8 +1221,17 @@ export function rowColumnOperationInitial(){
 
         let st_index = Store.luckysheet_select_save[0].row[1];
         luckysheetextendtable('row', st_index, value, "rightbottom");
+
+        $("#luckysheetColsRowsHandleAdd_sub").hide();
+
     });
-    $("#luckysheet-addRightCols").click(function (event) {
+    // $("#luckysheet-addRightCols").click(function (event) {
+    $("#luckysheetColsRowsHandleAdd_sub .luckysheet-cols-menuitem:nth-child(4)").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1183,7 +1250,7 @@ export function rowColumnOperationInitial(){
             return;
         }
 
-        let $t = $(this), value = $t.parent().find("input").val();
+        let $t = $(this), value = $t.find("input").val();
         if (!isRealNum(value)) {
             if(isEditMode()){
                 alert(locale_info.tipInputNumber);
@@ -1210,6 +1277,9 @@ export function rowColumnOperationInitial(){
 
         let st_index = Store.luckysheet_select_save[0].column[1];
         luckysheetextendtable('column', st_index, value, "rightbottom");
+
+        $("#luckysheetColsRowsHandleAdd_sub").hide();
+
     });
     
     //删除选中行列
@@ -1306,6 +1376,10 @@ export function rowColumnOperationInitial(){
 
     //隐藏、显示行
     $("#luckysheet-hidRows").click(function (event) {
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatRows")){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1345,6 +1419,9 @@ export function rowColumnOperationInitial(){
         jfrefreshgrid_rhcw(Store.flowdata.length, Store.flowdata[0].length);
     })
     $("#luckysheet-showHidRows").click(function (event) {
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatRows")){
+            return;
+        }
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1386,6 +1463,9 @@ export function rowColumnOperationInitial(){
 
     //隐藏、显示列
     $("#luckysheet-hidCols").click(function (event) {
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatColumns")){
+            return;
+        }
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1425,6 +1505,9 @@ export function rowColumnOperationInitial(){
         jfrefreshgrid_rhcw(Store.flowdata.length, Store.flowdata[0].length);
     })
     $("#luckysheet-showHidCols").click(function (event) {
+        if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatColumns")){
+            return;
+        }
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1514,6 +1597,11 @@ export function rowColumnOperationInitial(){
 
     //清除单元格内容
     $("#luckysheet-delete-text").click(function(){
+
+        if(!checkProtectionLockedRangeList(Store.luckysheet_select_save, Store.currentSheetIndex)){
+            return;
+        }
+
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
@@ -1573,6 +1661,10 @@ export function rowColumnOperationInitial(){
 
                                 delete d[r][c]["spl"];
                             }
+
+                            if(d[r][c]["ct"] != null && d[r][c]["ct"].t == 'inlineStr'){
+                                delete d[r][c]["ct"];
+                            }
                         }
                         else{
                             d[r][c] = null;
@@ -1586,29 +1678,41 @@ export function rowColumnOperationInitial(){
     });
 
     //行高列宽设置
-    $("#luckysheet-rows-cols-changesize").click(function(){
+    // $("#luckysheet-rows-cols-changesize").click(function(){
+    $("#luckysheet-column-row-width-selected").click(function (event) {
+
+        // Click input element, don't comfirm 
+        if(event.target.nodeName === 'INPUT'){
+            return;
+        }
+        
         $("#luckysheet-rightclick-menu").hide();
         luckysheetContainerFocus();
 
-        let size = parseInt($(this).siblings("input[type='number']").val().trim());
-
-        if(size < 0 || size > 255){
-            const locale_info = locale().info;
-
-            if(isEditMode()){
-                alert(locale_info.tipRowHeightLimit);
-            }
-            else{
-                tooltip.info(locale_info.tipRowHeightLimit, "");
-            }
-            
-            return;
-        }
+        // let size = parseInt($(this).siblings("input[type='number']").val().trim());
+        let size = parseInt($(this).closest('.luckysheet-cols-menuitem').find("input[type='number']").val().trim());
+        
+        const locale_info = locale().info;
 
         let cfg = $.extend(true, {}, Store.config);
         let type;
+        let images = null;
 
         if(Store.luckysheetRightHeadClickIs == "row"){
+            if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatRows")){
+                return;
+            }
+
+            if(size < 0 || size > 545){
+                if(isEditMode()){
+                    alert(locale_info.tipRowHeightLimit);
+                }
+                else{
+                    tooltip.info(locale_info.tipRowHeightLimit, "");
+                }
+                return;
+            }
+
             type = "resizeR";
 
             if(cfg["rowlen"] == null){
@@ -1621,10 +1725,26 @@ export function rowColumnOperationInitial(){
 
                 for(let r = r1; r <= r2; r++){
                     cfg["rowlen"][r] = size;
+
+                    images = imageCtrl.moveChangeSize("row", r, size);
                 }
             }
         }
         else if(Store.luckysheetRightHeadClickIs == "column"){
+            if(!checkProtectionAuthorityNormal(Store.currentSheetIndex, "formatColumns")){
+                return;
+            }
+
+            if(size < 0 || size > 2038){
+                if(isEditMode()){
+                    alert(locale_info.tipColumnWidthLimit);
+                }
+                else{
+                    tooltip.info(locale_info.tipColumnWidthLimit, "");
+                }
+                return;
+            }
+            
             type = "resizeC";
 
             if(cfg["columnlen"] == null){
@@ -1637,6 +1757,8 @@ export function rowColumnOperationInitial(){
 
                 for(let c = c1; c <= c2; c++){
                     cfg["columnlen"][c] = size;
+
+                    images = imageCtrl.moveChangeSize("column", c, size);
                 }
             }
         }
@@ -1646,15 +1768,23 @@ export function rowColumnOperationInitial(){
             Store.jfredo.push({
                 "type": "resize",
                 "ctrlType": type,
+                "sheetIndex": Store.currentSheetIndex,
                 "config": $.extend(true, {}, Store.config),
                 "curconfig": $.extend(true, {}, cfg),
-                "sheetIndex": Store.currentSheetIndex
+                "images": $.extend(true, {}, imageCtrl.images),
+                "curImages": $.extend(true, {}, images) 
             });
         }
 
         //config
         Store.config = cfg;
         Store.luckysheetfile[getSheetIndex(Store.currentSheetIndex)].config = Store.config;
+
+        //images
+        Store.luckysheetfile[getSheetIndex(Store.currentSheetIndex)].images = images;
+        server.saveParam("all", Store.currentSheetIndex, images, { "k": "images" });
+        imageCtrl.images = images;
+        imageCtrl.allImagesShow();
 
         if(Store.luckysheetRightHeadClickIs == "row"){
             server.saveParam("cg", Store.currentSheetIndex, cfg["rowlen"], { "k": "rowlen" });
@@ -1711,7 +1841,7 @@ function luckysheetcolsdbclick() {
             for(let r = dataset_row_st; r <= dataset_row_ed; r++){
                 let cell = d[r][colIndex];
                 
-                if(cell == null || (isRealNull(cell.v) && !(cell.ct!=null && cell.ct.t=="inlineStr" && cell.ct.s!=null && cell.ct.s.length>0)) ){
+                if(cell == null || (isRealNull(cell.v) && !isInlineStringCell(cell)) ){
                     continue;
                 }
 
@@ -1759,7 +1889,7 @@ function luckysheetcolsdbclick() {
                 for(let r = dataset_row_st; r <= dataset_row_ed; r++){
                     let cell = d[r][c];
                     
-                    if(cell == null || (isRealNull(cell.v) && !(cell.ct!=null && cell.ct.t=="inlineStr" && cell.ct.s!=null && cell.ct.s.length>0)) ){
+                    if(cell == null || (isRealNull(cell.v) && !isInlineStringCell(cell)) ){
                         continue;
                     }
 
